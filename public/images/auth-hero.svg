@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" fill="none" class="w-full h-full">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgb(255 255 255 / 0.95)" />
+      <stop offset="100%" stop-color="rgb(255 255 255 / 0.85)" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgb(4 120 87)" />
+      <stop offset="100%" stop-color="rgb(5 99 81)" />
+    </linearGradient>
+  </defs>
+  <!-- Card shape emerging -->
+  <rect x="24" y="32" width="200" height="120" rx="12" fill="url(#cardGrad)" stroke="rgb(255 255 255 / 0.4)" stroke-width="1"/>
+  <rect x="24" y="32" width="200" height="36" rx="12" fill="rgb(255 255 255 / 0.5)"/>
+  <rect x="40" y="88" width="80" height="8" rx="4" fill="rgb(148 163 184)"/>
+  <rect x="40" y="104" width="120" height="8" rx="4" fill="rgb(148 163 184)"/>
+  <rect x="160" y="120" width="48" height="24" rx="6" fill="url(#accentGrad)"/>
+  <!-- Decorative elements -->
+  <circle cx="240" cy="80" r="48" fill="rgb(255 255 255 / 0.08)"/>
+  <circle cx="260" cy="100" r="32" fill="rgb(255 255 255 / 0.05)"/>
+</svg>

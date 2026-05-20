@@ -10,10 +10,10 @@ import { store } from '@/routes/password/confirm';
 export default function ConfirmPassword() {
     return (
         <AuthLayout
-            title="Confirm your password"
-            description="This is a secure area of the application. Please confirm your password before continuing."
+            title="Confirmar contraseña"
+            description="Zona segura. Confirma tu contraseña para continuar."
         >
-            <Head title="Confirm password" />
+            <Head title="Confirmar contraseña" />
 
             <Form {...store.form()} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (

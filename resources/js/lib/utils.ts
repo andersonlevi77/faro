@@ -10,3 +10,8 @@ export function cn(...inputs: ClassValue[]) {
 export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
+
+export function fmtQ(value: string | number): string {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return `Q ${isNaN(num) ? '0.00' : num.toFixed(2)}`;
+}

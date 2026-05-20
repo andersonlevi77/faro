@@ -1,0 +1,49 @@
+{
+    "auth": {
+        "login_title": "Iniciar sesión",
+        "login_description": "Introduce tu correo y contraseña para acceder",
+        "register_title": "Crear cuenta",
+        "register_description": "Introduce tus datos para registrarte",
+        "email": "Correo electrónico",
+        "password": "Contraseña",
+        "password_confirmation": "Confirmar contraseña",
+        "remember": "Recordarme",
+        "forgot_password": "¿Olvidaste tu contraseña?",
+        "sign_in": "Entrar",
+        "create_account": "Crear cuenta",
+        "no_account": "¿No tienes cuenta?",
+        "has_account": "¿Ya tienes cuenta?",
+        "name": "Nombre",
+        "name_placeholder": "Nombre completo",
+        "reset_title": "Restablecer contraseña",
+        "reset_description": "Introduce tu nueva contraseña a continuación",
+        "forgot_title": "Recuperar contraseña",
+        "forgot_description": "Introduce tu correo para recibir un enlace de restablecimiento",
+        "send_reset_link": "Enviar enlace para restablecer",
+        "back_to_login": "O vuelve a",
+        "verify_title": "Verificar correo",
+        "verify_description": "Verifica tu correo electrónico haciendo clic en el enlace que te hemos enviado.",
+        "verify_sent": "Se ha enviado un nuevo enlace de verificación al correo que indicaste en el registro.",
+        "resend_verify": "Reenviar correo de verificación",
+        "log_out": "Cerrar sesión",
+        "confirm_title": "Confirmar contraseña",
+        "confirm_description": "Zona segura. Confirma tu contraseña para continuar.",
+        "support": "Soporte",
+        "reach_goals": "Alcanza tus metas más rápido",
+        "reach_goals_desc": "Usa tus herramientas desde cualquier lugar. Organiza, sigue y avanza.",
+        "learn_more": "Saber más",
+        "progress": "Progreso",
+        "ready": "Listo",
+        "new_features": "Nuevas funciones",
+        "new_features_desc": "Analizar tendencias te ayuda a tomar mejores decisiones. A medida que crece tu trabajo, los pequeños avances se suman.",
+        "dark_panel": "Panel oscuro"
+    },
+    "validation": {
+        "required": "El campo :attribute es obligatorio.",
+        "email": "El campo :attribute debe ser un correo válido.",
+        "confirmed": "La confirmación de :attribute no coincide.",
+        "min": {
+            "string": "El campo :attribute debe tener al menos :min caracteres."
+        }
+    }
+}

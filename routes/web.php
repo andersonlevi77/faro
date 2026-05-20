@@ -1,5 +1,17 @@
 <?php
 
+use App\Http\Controllers\AlquilerController;
+use App\Http\Controllers\AlquilerEstadoController;
+use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MantenimientoController;
+use App\Http\Controllers\PagoController;
+use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ProductoUnidadController;
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -8,7 +20,37 @@ Route::inertia('/', 'welcome', [
 ])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    Route::resource('clientes', ClienteController::class);
+    Route::resource('alquileres', AlquilerController::class)
+        ->parameters(['alquileres' => 'alquiler']);
+    Route::post('alquileres/{alquiler}/estado', [AlquilerEstadoController::class, 'update'])
+        ->name('alquileres.estado.update');
+    Route::post('alquileres/{alquiler}/pagos', [PagoController::class, 'store'])
+        ->name('alquileres.pagos.store');
+    Route::delete('alquileres/{alquiler}/pagos/{pago}', [PagoController::class, 'destroy'])
+        ->name('alquileres.pagos.destroy');
+
+    Route::resource('mantenimientos', MantenimientoController::class)
+        ->only(['index', 'create', 'store', 'show', 'update'])
+        ->parameters(['mantenimientos' => 'mantenimiento']);
+
+    Route::get('calendario', CalendarioController::class)->name('calendario');
+    Route::get('reportes', ReporteController::class)->name('reportes');
+
+    Route::get('usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
+    Route::get('usuarios/crear', [UsuarioController::class, 'create'])->name('usuarios.create');
+    Route::post('usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
+    Route::get('usuarios/{user}/editar', [UsuarioController::class, 'edit'])->name('usuarios.edit');
+    Route::put('usuarios/{user}', [UsuarioController::class, 'update'])->name('usuarios.update');
+
+    Route::resource('roles', RoleController::class);
+
+    Route::resource('productos', ProductoController::class)->names('productos');
+    Route::resource('productos.unidades', ProductoUnidadController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->shallow();
 });
 
 require __DIR__.'/settings.php';

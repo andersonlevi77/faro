@@ -19,14 +19,19 @@
             })();
         </script>
 
-        {{-- Inline style to set the HTML background color based on our theme in app.css --}}
+        {{-- Inline style: theme background + Poppins so font applies before Vite --}}
         <style>
             html {
                 background-color: oklch(1 0 0);
+                font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
             }
 
             html.dark {
                 background-color: oklch(0.145 0 0);
+            }
+
+            body {
+                font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
             }
         </style>
 
@@ -37,7 +42,7 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=poppins:300,400,500,600&display=swap" rel="stylesheet" />
 
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])

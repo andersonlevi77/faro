@@ -13,4 +13,10 @@ test('authenticated users can visit the dashboard', function () {
 
     $response = $this->get(route('dashboard'));
     $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('dashboard')
+        ->has('stats')
+        ->has('proximasDevoluciones')
+        ->has('atrasados')
+        ->has('productosStockBajo'));
 });

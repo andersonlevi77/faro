@@ -3,9 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 /**
  * @extends Factory<User>
@@ -16,6 +18,22 @@ class UserFactory extends Factory
      * The current password being used by the factory.
      */
     protected static ?string $password;
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if (! app()->environment('testing')) {
+                return;
+            }
+            if ($user->roles()->exists()) {
+                return;
+            }
+            if (! Role::query()->where('name', 'administrador')->where('guard_name', 'web')->exists()) {
+                (new RolePermissionSeeder)->run();
+            }
+            $user->assignRole('administrador');
+        });
+    }
 
     /**
      * Define the model's default state.
