@@ -1,5 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import { AppBrandLogo } from '@/components/app-brand-logo';
 import AuthThemeToggle from '@/components/auth-theme-toggle';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { home } from '@/routes';
@@ -10,9 +9,6 @@ export default function AuthSplitLayout({
     title,
     description,
 }: AuthLayoutProps) {
-    const { name } = usePage().props as { name?: string };
-    const appName = name ?? 'Faro';
-
     return (
         <TooltipProvider delayDuration={400}>
             <div className="faro-auth-shell">
@@ -20,20 +16,8 @@ export default function AuthSplitLayout({
                     <AuthThemeToggle />
                 </div>
 
-                <div className="flex w-full max-w-[20rem] flex-col items-center text-center">
-                    <Link href={home()} className="mb-8 flex flex-col items-center gap-3">
-                        <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-brand text-white">
-                            <AppLogoIcon className="size-6 fill-current text-white" />
-                        </div>
-                        <div>
-                            <span className="block text-2xl font-bold tracking-tight text-foreground">
-                                {appName}
-                            </span>
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
-                                Gestión de alquileres
-                            </span>
-                        </div>
-                    </Link>
+                <div className="flex w-full max-w-[22rem] flex-col items-center text-center">
+                    <AppBrandLogo variant="auth" href={home()} className="mb-8" showAppText={false} />
 
                     {(title || description) && (
                         <header className="mb-6 w-full text-center">

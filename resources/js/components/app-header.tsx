@@ -1,8 +1,8 @@
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { Link, usePage } from '@inertiajs/react';
 import { LayoutGrid, Menu, Package } from 'lucide-react';
+import { AppBrandLogo } from '@/components/app-brand-logo';
 import AppLogo from '@/components/app-logo';
-import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -84,7 +84,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     Menú de navegación
                                 </SheetTitle>
                                 <SheetHeader className="flex justify-start text-left">
-                                    <AppLogoIcon className="h-6 w-6 fill-current text-black dark:text-white" />
+                                    <AppBrandLogo variant="header" showAppText={false} />
                                 </SheetHeader>
                                 <div className="flex h-full flex-1 flex-col space-y-4 p-4">
                                     <div className="flex h-full flex-col justify-between text-sm">

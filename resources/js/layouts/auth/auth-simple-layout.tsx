@@ -1,5 +1,4 @@
-import { Link } from '@inertiajs/react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import { AppBrandLogo } from '@/components/app-brand-logo';
 import AuthThemeToggle from '@/components/auth-theme-toggle';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { home } from '@/routes';
@@ -21,15 +20,7 @@ export default function AuthSimpleLayout({
                 <div className="rounded-xl border border-border/70 bg-white/80 px-6 py-8 dark:border-white/10 dark:bg-white/[0.06]">
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-col items-center gap-4">
-                            <Link
-                                href={home()}
-                                className="flex flex-col items-center gap-2 font-medium text-foreground"
-                            >
-                                <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg">
-                                    <AppLogoIcon className="size-10 fill-current opacity-90" />
-                                </div>
-                                <span className="sr-only">{title}</span>
-                            </Link>
+                            <AppBrandLogo variant="auth" href={home()} showAppText={false} />
 
                             <div className="space-y-1.5 text-center">
                                 <h1 className="text-xl font-semibold tracking-tight text-foreground">
