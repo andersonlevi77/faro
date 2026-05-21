@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'email_verified_at',
+        'activo',
     ];
 
     /**
@@ -50,6 +51,12 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'activo' => 'boolean',
         ];
+    }
+
+    public function estaActivo(): bool
+    {
+        return $this->activo;
     }
 }

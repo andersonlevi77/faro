@@ -4,6 +4,11 @@ import AppLayout from '@/layouts/app-layout';
 import { create, index, store } from '@/routes/mantenimientos';
 import type { BreadcrumbItem } from '@/types';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
+import {
+    MantenimientoAsociacionFields,
+    type ProductoOption,
+    type UnidadOption,
+} from '@/components/mantenimiento-asociacion-fields';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,8 +22,12 @@ interface UnidadInicial {
 
 export default function MantenimientosCrear({
     unidadInicial,
+    productos,
+    unidades,
 }: {
     unidadInicial?: UnidadInicial | null;
+    productos: ProductoOption[];
+    unidades: UnidadOption[];
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Mantenimientos', href: index.url() },
@@ -43,10 +52,10 @@ export default function MantenimientosCrear({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nuevo mantenimiento" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex items-center gap-3">
                     <IconActionTooltip label="Volver a la lista">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={index.url()}>
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -55,7 +64,7 @@ export default function MantenimientosCrear({
                     <h1 className="text-xl font-semibold tracking-tight">Nuevo mantenimiento</h1>
                 </div>
 
-                <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">
+                <form onSubmit={handleSubmit} className="w-full space-y-4">
                     {unidadInicial && (
                         <Card className="border-primary/20 bg-primary/5">
                             <CardContent className="py-3 text-sm">
@@ -69,50 +78,35 @@ export default function MantenimientosCrear({
                         </Card>
                     )}
 
+                    <div className="grid w-full gap-4 lg:grid-cols-12">
                     {!unidadInicial && (
-                        <Card>
+                        <Card className="lg:col-span-4">
                             <CardHeader>
-                                <CardTitle className="text-base">Asociación (opcional)</CardTitle>
+                                <CardTitle className="text-base">Equipo (opcional)</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-1">
-                                    <Label htmlFor="producto_unidad_id">ID de unidad</Label>
-                                    <Input
-                                        id="producto_unidad_id"
-                                        type="number"
-                                        min="1"
-                                        placeholder="ID de unidad individual"
-                                        value={data.producto_unidad_id}
-                                        onChange={(e) => setData('producto_unidad_id', e.target.value)}
-                                    />
-                                    {errors.producto_unidad_id && (
-                                        <p className="text-xs text-destructive">{errors.producto_unidad_id}</p>
-                                    )}
-                                </div>
-                                <div className="space-y-1">
-                                    <Label htmlFor="producto_id">ID de producto (si es general)</Label>
-                                    <Input
-                                        id="producto_id"
-                                        type="number"
-                                        min="1"
-                                        placeholder="ID del producto"
-                                        value={data.producto_id}
-                                        onChange={(e) => setData('producto_id', e.target.value)}
-                                    />
-                                    {errors.producto_id && (
-                                        <p className="text-xs text-destructive">{errors.producto_id}</p>
-                                    )}
-                                </div>
+                            <CardContent>
+                                <MantenimientoAsociacionFields
+                                    productoUnidadId={data.producto_unidad_id}
+                                    productoId={data.producto_id}
+                                    onProductoUnidadIdChange={(value) => setData('producto_unidad_id', value)}
+                                    onProductoIdChange={(value) => setData('producto_id', value)}
+                                    productos={productos}
+                                    unidades={unidades}
+                                    errors={{
+                                        producto_unidad_id: errors.producto_unidad_id,
+                                        producto_id: errors.producto_id,
+                                    }}
+                                />
                             </CardContent>
                         </Card>
                     )}
 
-                    <Card>
+                    <Card className={unidadInicial ? 'lg:col-span-12' : 'lg:col-span-8'}>
                         <CardHeader>
                             <CardTitle className="text-base">Detalles</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-1">
+                            <div className="faro-field">
                                 <Label htmlFor="titulo">Título <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="titulo"
@@ -123,21 +117,21 @@ export default function MantenimientosCrear({
                                 {errors.titulo && <p className="text-xs text-destructive">{errors.titulo}</p>}
                             </div>
 
-                            <div className="space-y-1">
+                            <div className="faro-field">
                                 <Label htmlFor="descripcion">Descripción</Label>
                                 <textarea
                                     id="descripcion"
                                     rows={3}
                                     placeholder="Descripción detallada del trabajo a realizar"
-                                    className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="faro-textarea w-full border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     value={data.descripcion}
                                     onChange={(e) => setData('descripcion', e.target.value)}
                                 />
                                 {errors.descripcion && <p className="text-xs text-destructive">{errors.descripcion}</p>}
                             </div>
 
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-1">
+                            <div className="faro-form-grid sm:grid-cols-2">
+                                <div className="faro-field">
                                     <Label htmlFor="costo">Costo estimado</Label>
                                     <Input
                                         id="costo"
@@ -150,7 +144,7 @@ export default function MantenimientosCrear({
                                     />
                                     {errors.costo && <p className="text-xs text-destructive">{errors.costo}</p>}
                                 </div>
-                                <div className="space-y-1">
+                                <div className="faro-field">
                                     <Label htmlFor="fecha_programada">Fecha programada</Label>
                                     <Input
                                         id="fecha_programada"
@@ -162,13 +156,13 @@ export default function MantenimientosCrear({
                                 </div>
                             </div>
 
-                            <div className="space-y-1">
+                            <div className="faro-field">
                                 <Label htmlFor="notas">Notas internas</Label>
                                 <textarea
                                     id="notas"
                                     rows={2}
                                     placeholder="Notas adicionales"
-                                    className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="faro-textarea w-full border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     value={data.notas}
                                     onChange={(e) => setData('notas', e.target.value)}
                                 />
@@ -176,9 +170,10 @@ export default function MantenimientosCrear({
                             </div>
                         </CardContent>
                     </Card>
+                    </div>
 
-                    <div className="flex gap-3">
-                        <Button type="submit" disabled={processing}>
+                    <div className="faro-form-actions">
+                        <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
                             {processing ? 'Guardando…' : 'Crear mantenimiento'}
                         </Button>
                         <Button variant="outline" asChild>

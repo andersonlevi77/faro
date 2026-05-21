@@ -3,64 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePresentacionRequest;
-use App\Http\Requests\UpdatePresentacionRequest;
 use App\Models\Presentacion;
+use App\Models\Producto;
+use Illuminate\Http\JsonResponse;
 
 class PresentacionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function store(StorePresentacionRequest $request): JsonResponse
     {
-        //
-    }
+        abort_unless(
+            $request->user()->can('create', Producto::class) || $request->user()->can('update', Producto::class),
+            403,
+        );
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
+        $presentacion = Presentacion::create([
+            'nombre' => $request->validated('nombre'),
+            'creado_por' => $request->user()->id,
+        ]);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StorePresentacionRequest $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Presentacion $presentacion)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Presentacion $presentacion)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdatePresentacionRequest $request, Presentacion $presentacion)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Presentacion $presentacion)
-    {
-        //
+        return response()->json([
+            'id' => $presentacion->id,
+            'nombre' => $presentacion->nombre,
+        ], 201);
     }
 }

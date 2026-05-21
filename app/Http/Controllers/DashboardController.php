@@ -10,6 +10,7 @@ use App\Models\Cliente;
 use App\Models\Mantenimiento;
 use App\Models\Pago;
 use App\Models\Producto;
+use App\Support\SaludoDiario;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -86,6 +87,7 @@ class DashboardController extends Controller
             ->get(['id', 'titulo', 'estado', 'producto_unidad_id', 'producto_id', 'fecha_programada']);
 
         return Inertia::render('dashboard', [
+            'saludo' => SaludoDiario::obtener(),
             'stats' => [
                 'clientes' => Cliente::query()->count(),
                 'productosActivos' => Producto::query()->where('activo', true)->count(),

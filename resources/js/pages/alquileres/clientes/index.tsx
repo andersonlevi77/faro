@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { create, destroy, edit, index, show } from '@/routes/clientes';
 import type { BreadcrumbItem } from '@/types';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,10 +34,10 @@ interface Paginated {
 }
 
 const SCORE_COLOR: Record<string, string> = {
-    Excelente: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    Bueno: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    Regular: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    Bajo: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    Excelente: 'faro-status-excelente',
+    Bueno: 'faro-status-bueno',
+    Regular: 'faro-status-regular',
+    Bajo: 'faro-status-bajo',
 };
 
 export default function ClientesIndex({
@@ -52,6 +53,7 @@ export default function ClientesIndex({
         { title: 'Alquileres', href: index.url() },
         { title: 'Clientes', href: index.url() },
     ];
+    const { confirm, dialog } = useConfirmDialog();
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -61,20 +63,24 @@ export default function ClientesIndex({
     };
 
     const handleDestroy = (id: number) => {
-        if (confirm('¿Eliminar este cliente?')) {
-            router.delete(destroy.url({ cliente: id }));
-        }
+        confirm({
+            title: '¿Eliminar este cliente?',
+            description: 'Se eliminará el registro del cliente. Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar cliente',
+            onConfirm: () => router.delete(destroy.url({ cliente: id })),
+        });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            {dialog}
             <Head title="Clientes" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
-                <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <div className="faro-page">
+                <Card>
                     <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 pb-4">
                         <div>
                             <CardTitle className="flex items-center gap-2 text-foreground">
-                                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <span className="faro-page-icon">
                                     <Users className="size-4" />
                                 </span>
                                 Clientes
@@ -103,7 +109,7 @@ export default function ClientesIndex({
                                 Buscar
                             </Button>
                         </form>
-                        <div className="overflow-x-auto rounded-lg bg-muted/20">
+                        <div className="faro-table-wrap">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border/40 bg-muted/30">

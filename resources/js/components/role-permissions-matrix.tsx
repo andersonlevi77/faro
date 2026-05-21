@@ -103,7 +103,7 @@ function ModulePermissionsCard({
         const lista = permisosActivosEnModulo(fila, selected);
 
         return (
-            <Card className="gap-0 py-4 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <Card className="gap-0 py-4">
                 <CardHeader className="space-y-1 px-5 pb-2 pt-0">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <CardTitle className="text-base">{fila.moduloLabel}</CardTitle>
@@ -139,7 +139,7 @@ function ModulePermissionsCard({
     }
 
     return (
-        <Card className="gap-0 py-4 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+        <Card className="gap-0 py-4">
             <CardHeader className="flex flex-col gap-3 space-y-0 px-5 pb-3 pt-0 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -181,7 +181,7 @@ function ModulePermissionsCard({
                         return (
                             <label
                                 key={casilla.accion}
-                                className="flex cursor-pointer gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 transition-colors hover:bg-muted/25"
+                                className="flex cursor-pointer gap-3 rounded-xl border border-border/50 bg-muted/20 p-3 transition-colors hover:bg-muted/25"
                             >
                                 <input
                                     type="checkbox"
@@ -214,7 +214,7 @@ function ModulePermissionsCard({
                             {fila.extras.map((extra) => (
                                 <label
                                     key={extra.name}
-                                    className="flex cursor-pointer gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 transition-colors hover:bg-muted/25"
+                                    className="flex cursor-pointer gap-3 rounded-xl border border-border/50 bg-muted/20 p-3 transition-colors hover:bg-muted/25"
                                 >
                                     <input
                                         type="checkbox"
@@ -256,7 +256,7 @@ export function RolePermissionsMatrix({
     return (
         <div className="space-y-4">
             {!readOnly && (
-                <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                <div className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                     <p className="text-pretty">
                         Los permisos están agrupados por <span className="font-medium text-foreground">módulo</span>. Activa
                         solo lo que necesites; puedes usar <span className="font-medium text-foreground">Activar todo el módulo</span>{' '}

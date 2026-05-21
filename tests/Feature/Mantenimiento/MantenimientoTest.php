@@ -98,6 +98,40 @@ test('se puede crear mantenimiento sin unidad para producto general', function (
     expect(Mantenimiento::query()->count())->toBe(1);
 });
 
+test('formulario de crear incluye productos y unidades para seleccionar', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $producto = Producto::factory()->create(['activo' => true, 'nombre' => 'Andamio 2m']);
+    ProductoUnidad::factory()->disponible()->create([
+        'codigo' => 'AND-001',
+        'producto_id' => $producto->id,
+    ]);
+
+    $this->get(route('mantenimientos.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('mantenimientos/crear')
+            ->has('productos', 1)
+            ->has('unidades', 1)
+            ->where('productos.0.nombre', 'Andamio 2m')
+            ->where('unidades.0.codigo', 'AND-001'));
+});
+
+test('no se puede asociar unidad y producto al mismo tiempo', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $producto = Producto::factory()->create();
+    $unidad = ProductoUnidad::factory()->create(['producto_id' => $producto->id]);
+
+    $this->post(route('mantenimientos.store'), [
+        'producto_unidad_id' => $unidad->id,
+        'producto_id' => $producto->id,
+        'titulo' => 'Conflicto',
+    ])->assertSessionHasErrors(['producto_unidad_id', 'producto_id']);
+});
+
 test('titulo es requerido para crear mantenimiento', function () {
     $user = User::factory()->create();
     $this->actingAs($user);

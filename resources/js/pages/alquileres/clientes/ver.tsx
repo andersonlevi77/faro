@@ -4,6 +4,7 @@ import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
+import { fmtFecha } from '@/lib/dates';
 import { fmtQ } from '@/lib/utils';
 import { show as alquilerShow } from '@/routes/alquileres';
 import { edit, index, show } from '@/routes/clientes';
@@ -67,11 +68,11 @@ export default function ClientesVer({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={cliente.nombre} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <IconActionTooltip label="Volver a la lista de clientes">
-                            <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                            <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                                 <Link href={index.url()}>
                                     <ArrowLeft className="size-4" />
                                 </Link>
@@ -170,7 +171,7 @@ export default function ClientesVer({
                         {cliente.alquileres.length === 0 ? (
                             <p className="text-sm text-muted-foreground">Sin alquileres aún.</p>
                         ) : (
-                            <div className="overflow-x-auto rounded-lg bg-muted/20">
+                            <div className="faro-table-wrap">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border/40 bg-muted/30">
@@ -199,7 +200,7 @@ export default function ClientesVer({
                                                 <td className={`px-4 py-2 capitalize ${ESTADO_COLOR[a.estado] ?? ''}`}>
                                                     {a.estado.replace('_', ' ')}
                                                 </td>
-                                                <td className="px-4 py-2 text-muted-foreground">{a.fecha_fin_prevista}</td>
+                                                <td className="px-4 py-2 text-muted-foreground">{fmtFecha(a.fecha_fin_prevista)}</td>
                                                 <td className="px-4 py-2 text-right tabular-nums">{a.lineas_count}</td>
                                             </tr>
                                         ))}

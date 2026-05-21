@@ -67,12 +67,12 @@ export default function MantenimientosIndex({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Mantenimientos" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
-                <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <div className="faro-page">
+                <Card>
                     <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 pb-4">
                         <div>
                             <CardTitle className="flex items-center gap-2 text-foreground">
-                                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <span className="faro-page-icon">
                                     <Wrench className="size-4" />
                                 </span>
                                 Mantenimientos
@@ -100,7 +100,7 @@ export default function MantenimientosIndex({
                             <select
                                 name="estado"
                                 defaultValue={filters?.estado ?? ''}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[200px]"
+                                className="flex h-10 w-full faro-native-select border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[200px]"
                             >
                                 <option value="">Todos los estados</option>
                                 {estados.map((s) => (
@@ -110,7 +110,7 @@ export default function MantenimientosIndex({
                             <Button type="submit" variant="secondary">Filtrar</Button>
                         </form>
 
-                        <div className="overflow-x-auto rounded-lg bg-muted/20">
+                        <div className="faro-table-wrap">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border/40 bg-muted/30">

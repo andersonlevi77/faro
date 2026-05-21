@@ -1,8 +1,18 @@
-import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, CalendarDays, ClipboardList, LayoutGrid, Package, Shield, UserCog, Users, Wrench } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import {
+    BarChart3,
+    CalendarDays,
+    ClipboardList,
+    LayoutGrid,
+    LogOut,
+    Package,
+    Shield,
+    UserCog,
+    Users,
+    Wrench,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
 import {
     Sidebar,
     SidebarContent,
@@ -12,11 +22,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { calendario, dashboard, reportes } from '@/routes';
 import { index as alquileresIndex } from '@/routes/alquileres';
 import { index as clientesIndex } from '@/routes/clientes';
 import { index as mantenimientosIndex } from '@/routes/mantenimientos';
 import { index as productosIndex } from '@/routes/productos';
+import { logout } from '@/routes';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as usuariosIndex } from '@/routes/usuarios';
 import type { Auth, NavItem } from '@/types';
@@ -28,6 +40,7 @@ function can(permissions: string[] | undefined, ability: string): boolean {
 export function AppSidebar() {
     const auth = usePage().props.auth as Auth;
     const permissions = auth.permissions;
+    const cleanup = useMobileNavigation();
 
     const mainNavItems: NavItem[] = [
         {
@@ -109,12 +122,17 @@ export function AppSidebar() {
             : []),
     ];
 
+    const handleLogout = () => {
+        cleanup();
+        router.flushAll();
+    };
+
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+        <Sidebar collapsible="icon" variant="inset" className="border-none">
+            <SidebarHeader className="border-b border-sidebar-border/60 px-3 py-4">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton size="lg" asChild className="h-auto rounded-xl hover:bg-transparent">
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />
                             </Link>
@@ -123,12 +141,29 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent className="pt-2">
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
-            <SidebarFooter>
-                <NavUser />
+            <SidebarFooter className="border-t border-sidebar-border/60 p-3">
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            className="h-10 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                            <Link
+                                href={logout()}
+                                as="button"
+                                onClick={handleLogout}
+                                data-test="sidebar-logout-button"
+                            >
+                                <LogOut className="size-[18px]" />
+                                <span className="font-medium">Cerrar sesión</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
             </SidebarFooter>
         </Sidebar>
     );

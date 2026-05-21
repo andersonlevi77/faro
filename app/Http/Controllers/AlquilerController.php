@@ -8,12 +8,14 @@ use App\Enums\TipoPago;
 use App\Http\Requests\StoreAlquilerRequest;
 use App\Http\Requests\UpdateAlquilerRequest;
 use App\Models\Alquiler;
+use App\Models\AlquilerEstadoHistorial;
 use App\Models\AlquilerLinea;
 use App\Models\Cliente;
 use App\Models\Pago;
 use App\Models\Producto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -62,24 +64,7 @@ class AlquilerController extends Controller
     {
         $this->authorize('create', Alquiler::class);
 
-        return Inertia::render('alquileres/alquileres/crear', [
-            'clientes' => Cliente::query()->orderBy('nombre')->get(['id', 'nombre', 'documento']),
-            'productosAlquiler' => Producto::query()
-                ->where('activo', true)
-                ->where('es_alquilable', true)
-                ->whereNotNull('precio_alquiler_diario')
-                ->with(['categoria', 'marca'])
-                ->orderBy('nombre')
-                ->get([
-                    'id',
-                    'nombre',
-                    'codigo',
-                    'stock_alquiler',
-                    'precio_alquiler_diario',
-                    'categoria_id',
-                    'marca_id',
-                ]),
-        ]);
+        return Inertia::render('alquileres/alquileres/crear', $this->opcionesFormularioAlquiler());
     }
 
     public function store(StoreAlquilerRequest $request): RedirectResponse
@@ -114,21 +99,63 @@ class AlquilerController extends Controller
     {
         $this->authorize('view', $alquiler);
 
-        $alquiler->load(['cliente', 'usuario', 'lineas.producto.categoria', 'lineas.producto.marca', 'pagos.registradoPor']);
+        $alquiler->load([
+            'cliente',
+            'usuario',
+            'lineas.producto.categoria',
+            'lineas.producto.marca',
+            'pagos.registradoPor',
+            'historialEstados.usuario:id,name',
+        ]);
 
         $user = request()->user();
+        $estadoActual = $alquiler->estadoEnum();
 
         $transiciones = collect(EstadoAlquiler::cases())
-            ->filter(fn (EstadoAlquiler $e) => $alquiler->estadoEnum()->puedeTransicionarA($e))
+            ->filter(fn (EstadoAlquiler $e) => $estadoActual->puedeTransicionarA($e))
             ->map(fn (EstadoAlquiler $e) => [
                 'value' => $e->value,
                 'label' => $e->etiqueta(),
+                'color' => $e->color(),
+            ])
+            ->values()
+            ->all();
+
+        $historialEstados = $alquiler->historialEstados
+            ->sortByDesc(fn (AlquilerEstadoHistorial $h) => $h->created_at->getTimestamp() * 1000 + $h->id)
+            ->values()
+            ->map(
+                fn (AlquilerEstadoHistorial $h) => [
+                    'id' => $h->id,
+                    'estado_anterior' => $h->estado_anterior,
+                    'estado_anterior_label' => $h->estadoAnteriorEnum()?->etiqueta(),
+                    'estado_anterior_color' => $h->estadoAnteriorEnum()?->color(),
+                    'estado_nuevo' => $h->estado_nuevo,
+                    'estado_nuevo_label' => $h->estadoNuevoEnum()->etiqueta(),
+                    'estado_nuevo_color' => $h->estadoNuevoEnum()->color(),
+                    'usuario' => $h->usuario ? ['name' => $h->usuario->name] : null,
+                    'created_at' => $h->created_at->toIso8601String(),
+                ],
+            )->values()->all();
+
+        $flujoPrincipal = collect(EstadoAlquiler::flujoPrincipal())
+            ->map(fn (EstadoAlquiler $e) => [
+                'value' => $e->value,
+                'label' => $e->etiqueta(),
+                'color' => $e->color(),
             ])
             ->values()
             ->all();
 
         return Inertia::render('alquileres/alquileres/ver', [
             'alquiler' => $alquiler,
+            'estadoActual' => [
+                'value' => $estadoActual->value,
+                'label' => $estadoActual->etiqueta(),
+                'color' => $estadoActual->color(),
+            ],
+            'flujoPrincipal' => $flujoPrincipal,
+            'historialEstados' => $historialEstados,
             'transicionesPermitidas' => $transiciones,
             'puedeEditar' => $alquiler->estadoEnum() === EstadoAlquiler::Borrador
                 && ($user?->can('update', $alquiler) ?? false),
@@ -158,22 +185,7 @@ class AlquilerController extends Controller
 
         return Inertia::render('alquileres/alquileres/editar', [
             'alquiler' => $alquiler,
-            'clientes' => Cliente::query()->orderBy('nombre')->get(['id', 'nombre', 'documento']),
-            'productosAlquiler' => Producto::query()
-                ->where('activo', true)
-                ->where('es_alquilable', true)
-                ->whereNotNull('precio_alquiler_diario')
-                ->with(['categoria', 'marca'])
-                ->orderBy('nombre')
-                ->get([
-                    'id',
-                    'nombre',
-                    'codigo',
-                    'stock_alquiler',
-                    'precio_alquiler_diario',
-                    'categoria_id',
-                    'marca_id',
-                ]),
+            ...$this->opcionesFormularioAlquiler(),
         ]);
     }
 
@@ -234,7 +246,9 @@ class AlquilerController extends Controller
                 ]);
             }
 
-            $precio = (string) $producto->precio_alquiler_diario;
+            $precio = isset($row['precio_diario']) && $row['precio_diario'] !== ''
+                ? (string) $row['precio_diario']
+                : (string) $producto->precio_alquiler_diario;
             $cant = (string) $row['cantidad'];
             $subtotal = bcmul(bcmul($precio, (string) $dias, 2), $cant, 2);
 
@@ -247,5 +261,42 @@ class AlquilerController extends Controller
                 'subtotal' => $subtotal,
             ]);
         }
+    }
+
+    /**
+     * @return array{clientes: Collection<int, array<string, mixed>>, productosAlquiler: Collection<int, array<string, mixed>>}
+     */
+    private function opcionesFormularioAlquiler(): array
+    {
+        return [
+            'clientes' => Cliente::query()
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'documento', 'email', 'telefono']),
+            'productosAlquiler' => Producto::query()
+                ->where('activo', true)
+                ->where('es_alquilable', true)
+                ->whereNotNull('precio_alquiler_diario')
+                ->with(['categoria:id,nombre', 'marca:id,nombre'])
+                ->orderBy('nombre')
+                ->get([
+                    'id',
+                    'nombre',
+                    'codigo',
+                    'stock_alquiler',
+                    'precio_alquiler_diario',
+                    'categoria_id',
+                    'marca_id',
+                ])
+                ->map(fn (Producto $producto) => [
+                    'id' => $producto->id,
+                    'nombre' => $producto->nombre,
+                    'codigo' => $producto->codigo,
+                    'stock_alquiler' => (string) $producto->stock_alquiler,
+                    'precio_alquiler_diario' => (string) $producto->precio_alquiler_diario,
+                    'marca_nombre' => $producto->marca?->nombre,
+                    'categoria_nombre' => $producto->categoria?->nombre,
+                ])
+                ->values(),
+        ];
     }
 }

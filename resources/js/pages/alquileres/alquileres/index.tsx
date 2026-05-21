@@ -7,6 +7,7 @@ import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { fmtRangoFechas } from '@/lib/dates';
 import { fmtQ } from '@/lib/utils';
 
 interface ClienteMini {
@@ -79,12 +80,12 @@ export default function AlquileresIndex({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Alquileres" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
-                <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <div className="faro-page">
+                <Card>
                     <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 pb-4">
                         <div>
                             <CardTitle className="flex items-center gap-2 text-foreground">
-                                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <span className="faro-page-icon">
                                     <ClipboardList className="size-4" />
                                 </span>
                                 Alquileres
@@ -112,7 +113,7 @@ export default function AlquileresIndex({
                             <select
                                 name="estado"
                                 defaultValue={filters?.estado ?? ''}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[220px]"
+                                className="flex h-10 w-full faro-native-select border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[220px]"
                             >
                                 <option value="">Todos los estados</option>
                                 {estados.map((s) => (
@@ -125,7 +126,7 @@ export default function AlquileresIndex({
                                 Filtrar
                             </Button>
                         </form>
-                        <div className="overflow-x-auto rounded-lg bg-muted/20">
+                        <div className="faro-table-wrap">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border/40 bg-muted/30">
@@ -158,7 +159,7 @@ export default function AlquileresIndex({
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-muted-foreground">
-                                                        {a.fecha_inicio_prevista} → {a.fecha_fin_prevista}
+                                                        {fmtRangoFechas(a.fecha_inicio_prevista, a.fecha_fin_prevista)}
                                                     </td>
                                                     <td className="px-4 py-3 text-right tabular-nums">{fmtQ(a.total)}</td>
                                                     <td className="px-4 py-3 text-right tabular-nums">

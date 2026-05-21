@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\TipoPago;
 use App\Http\Requests\StoreClienteRequest;
 use App\Http\Requests\UpdateClienteRequest;
 use App\Models\Cliente;
@@ -78,7 +77,7 @@ class ClienteController extends Controller
         $totalPagado = number_format(
             (float) $cliente->alquileres
                 ->flatMap(fn ($a) => $a->pagos)
-                ->filter(fn ($p) => TipoPago::from($p->tipo)->esIngreso())
+                ->filter(fn ($p) => $p->tipo->esIngreso())
                 ->sum(fn ($p) => (float) $p->monto),
             2, '.', '',
         );

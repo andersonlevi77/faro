@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fmtFecha, fmtFechaHora } from '@/lib/dates';
 import { fmtQ } from '@/lib/utils';
 
 interface Mantenimiento {
@@ -76,11 +77,11 @@ export default function MantenimientosVer({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={mantenimiento.titulo} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <IconActionTooltip label="Volver a la lista">
-                            <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                            <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                                 <Link href={index.url()}>
                                     <ArrowLeft className="size-4" />
                                 </Link>
@@ -97,9 +98,8 @@ export default function MantenimientosVer({
                     </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-2">
-                    {/* Info general */}
-                    <Card>
+                <div className="grid w-full gap-4 xl:grid-cols-3">
+                    <Card className="xl:col-span-2">
                         <CardHeader>
                             <CardTitle className="text-base">Información</CardTitle>
                         </CardHeader>
@@ -149,7 +149,7 @@ export default function MantenimientosVer({
                                 {mantenimiento.fecha_programada && (
                                     <div>
                                         <p className="text-muted-foreground">Fecha programada</p>
-                                        <p>{mantenimiento.fecha_programada}</p>
+                                        <p>{fmtFecha(mantenimiento.fecha_programada)}</p>
                                     </div>
                                 )}
                             </div>
@@ -157,13 +157,13 @@ export default function MantenimientosVer({
                                 {mantenimiento.fecha_inicio_at && (
                                     <div>
                                         <p className="text-muted-foreground">Inicio</p>
-                                        <p>{mantenimiento.fecha_inicio_at}</p>
+                                        <p>{fmtFechaHora(mantenimiento.fecha_inicio_at)}</p>
                                     </div>
                                 )}
                                 {mantenimiento.fecha_fin_at && (
                                     <div>
                                         <p className="text-muted-foreground">Fin</p>
-                                        <p>{mantenimiento.fecha_fin_at}</p>
+                                        <p>{fmtFechaHora(mantenimiento.fecha_fin_at)}</p>
                                     </div>
                                 )}
                             </div>
@@ -192,61 +192,65 @@ export default function MantenimientosVer({
 
                     {/* Actualizar estado */}
                     {!isCompleted && (
-                        <Card>
+                        <Card className="xl:col-span-1">
                             <CardHeader>
                                 <CardTitle className="text-base">Actualizar</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="estado">Estado</Label>
-                                        <Select value={data.estado} onValueChange={(v) => setData('estado', v)}>
-                                            <SelectTrigger id="estado">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {estados.map((e) => (
-                                                    <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {errors.estado && <p className="text-xs text-destructive">{errors.estado}</p>}
+                                    <div className="faro-form-grid sm:grid-cols-2">
+                                        <div className="faro-field sm:col-span-2">
+                                            <Label htmlFor="estado">Estado</Label>
+                                            <Select value={data.estado} onValueChange={(v) => setData('estado', v)}>
+                                                <SelectTrigger id="estado" className="w-full">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {estados.map((e) => (
+                                                        <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {errors.estado && <p className="text-xs text-destructive">{errors.estado}</p>}
+                                        </div>
+                                        <div className="faro-field">
+                                            <Label htmlFor="costo">Costo final</Label>
+                                            <Input
+                                                id="costo"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                placeholder="0.00"
+                                                value={data.costo}
+                                                onChange={(e) => setData('costo', e.target.value)}
+                                            />
+                                            {errors.costo && <p className="text-xs text-destructive">{errors.costo}</p>}
+                                        </div>
+                                        <div className="faro-field sm:col-span-2">
+                                            <Label htmlFor="notas">Notas</Label>
+                                            <textarea
+                                                id="notas"
+                                                rows={3}
+                                                placeholder="Observaciones o resultados"
+                                                className="faro-textarea"
+                                                value={data.notas}
+                                                onChange={(e) => setData('notas', e.target.value)}
+                                            />
+                                            {errors.notas && <p className="text-xs text-destructive">{errors.notas}</p>}
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="costo">Costo final</Label>
-                                        <Input
-                                            id="costo"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            placeholder="0.00"
-                                            value={data.costo}
-                                            onChange={(e) => setData('costo', e.target.value)}
-                                        />
-                                        {errors.costo && <p className="text-xs text-destructive">{errors.costo}</p>}
+                                    <div className="faro-form-actions">
+                                        <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
+                                            {processing ? 'Guardando…' : 'Guardar cambios'}
+                                        </Button>
                                     </div>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="notas">Notas</Label>
-                                        <textarea
-                                            id="notas"
-                                            rows={3}
-                                            placeholder="Observaciones o resultados"
-                                            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                            value={data.notas}
-                                            onChange={(e) => setData('notas', e.target.value)}
-                                        />
-                                        {errors.notas && <p className="text-xs text-destructive">{errors.notas}</p>}
-                                    </div>
-                                    <Button type="submit" disabled={processing}>
-                                        {processing ? 'Guardando…' : 'Guardar cambios'}
-                                    </Button>
                                 </form>
                             </CardContent>
                         </Card>
                     )}
 
                     {isCompleted && mantenimiento.notas && (
-                        <Card>
+                        <Card className="xl:col-span-1">
                             <CardHeader>
                                 <CardTitle className="text-base">Notas finales</CardTitle>
                             </CardHeader>

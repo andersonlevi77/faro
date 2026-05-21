@@ -14,8 +14,8 @@
         'Noto Color Emoji';
 
     --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 4px);
+    --radius-sm: calc(var(--radius) - 8px);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -41,6 +41,15 @@
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
 
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+
+    --color-orange: var(--orange);
+    --color-orange-foreground: var(--orange-foreground);
+
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
@@ -59,79 +68,118 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-canvas: var(--canvas);
 }
 
 :root {
-    /* Azul/cian alegre, base limpia y profesional */
-    --background: oklch(0.99 0 0);
-    --foreground: oklch(0.2 0.01 250);
+    /* Paleta DocuMed / plantilla */
+    --brand-blue: #155dfc;
+    --brand-cyan: #15c6fc;
+    --brand-green: #1da871;
+    --brand-yellow: #ffd971;
+    --brand-orange: #fc6d3b;
+    --brand-black: #1a1a1a;
+
+    --canvas: oklch(0.98 0.004 250);
+    --background: oklch(0.98 0.004 250);
+    --foreground: oklch(0.22 0.01 250);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.2 0.01 250);
+    --card-foreground: oklch(0.22 0.01 250);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.2 0.01 250);
-    /* Primary = azul-cian (alegre, fresco) */
-    --primary: oklch(0.52 0.14 235);
+    --popover-foreground: oklch(0.22 0.01 250);
+
+    --primary: oklch(0.54 0.22 264);
     --primary-foreground: oklch(0.99 0 0);
-    --secondary: oklch(0.96 0.02 235);
-    --secondary-foreground: oklch(0.28 0.05 235);
-    --muted: oklch(0.968 0.008 250);
-    --muted-foreground: oklch(0.48 0.02 250);
-    --accent: oklch(0.94 0.04 235);
-    --accent-foreground: oklch(0.28 0.06 235);
-    --destructive: oklch(0.55 0.2 25);
+    --secondary: oklch(0.96 0.02 264);
+    --secondary-foreground: oklch(0.32 0.08 264);
+    --muted: oklch(0.965 0.006 250);
+    --muted-foreground: oklch(0.5 0.02 250);
+    --accent: oklch(0.94 0.04 264);
+    --accent-foreground: oklch(0.32 0.08 264);
+
+    --destructive: oklch(0.58 0.2 25);
     --destructive-foreground: oklch(0.99 0 0);
-    --border: oklch(0.91 0.01 250);
-    --input: oklch(0.96 0.008 250);
-    --ring: oklch(0.52 0.14 235);
-    --chart-1: oklch(0.55 0.14 235);
-    --chart-2: oklch(0.6 0.12 200);
-    --chart-3: oklch(0.5 0.1 270);
-    --chart-4: oklch(0.65 0.12 180);
-    --chart-5: oklch(0.55 0.1 30);
-    --radius: 0.5rem;
-    --sidebar: oklch(0.99 0 0);
-    --sidebar-foreground: oklch(0.2 0.01 250);
-    --sidebar-primary: oklch(0.52 0.14 235);
+    --success: oklch(0.62 0.14 160);
+    --success-foreground: oklch(0.99 0 0);
+    --warning: oklch(0.9 0.12 95);
+    --warning-foreground: oklch(0.35 0.08 75);
+    --orange: oklch(0.68 0.18 45);
+    --orange-foreground: oklch(0.99 0 0);
+
+    --border: oklch(0.92 0.008 250);
+    --input: oklch(1 0 0);
+    --ring: oklch(0.54 0.22 264);
+
+    --chart-1: oklch(0.54 0.22 264);
+    --chart-2: oklch(0.62 0.14 160);
+    --chart-3: oklch(0.72 0.14 220);
+    --chart-4: oklch(0.68 0.18 45);
+    --chart-5: oklch(0.9 0.12 95);
+
+    --radius: 1rem;
+
+    --sidebar: oklch(1 0 0);
+    --sidebar-foreground: oklch(0.45 0.02 250);
+    --sidebar-primary: oklch(0.54 0.22 264);
     --sidebar-primary-foreground: oklch(0.99 0 0);
-    --sidebar-accent: oklch(0.94 0.04 235);
-    --sidebar-accent-foreground: oklch(0.28 0.06 235);
-    --sidebar-border: oklch(0.91 0.01 250);
-    --sidebar-ring: oklch(0.52 0.14 235);
+    --sidebar-accent: oklch(0.965 0.006 250);
+    --sidebar-accent-foreground: oklch(0.32 0.06 264);
+    --sidebar-border: oklch(0.94 0.008 250);
+    --sidebar-ring: oklch(0.54 0.22 264);
+
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
 }
 
 .dark {
-    --background: oklch(0.16 0.02 250);
+    --canvas: oklch(0.17 0.02 250);
+    --background: oklch(0.17 0.02 250);
     --foreground: oklch(0.93 0.01 250);
-    --card: oklch(0.2 0.02 250);
+    --card: oklch(0.21 0.02 250);
     --card-foreground: oklch(0.93 0.01 250);
-    --popover: oklch(0.2 0.02 250);
+    --popover: oklch(0.21 0.02 250);
     --popover-foreground: oklch(0.93 0.01 250);
-    --primary: oklch(0.65 0.13 235);
-    --primary-foreground: oklch(0.18 0.04 235);
-    --secondary: oklch(0.28 0.04 235);
+
+    --primary: oklch(0.62 0.2 264);
+    --primary-foreground: oklch(0.18 0.04 264);
+    --secondary: oklch(0.28 0.04 264);
     --secondary-foreground: oklch(0.93 0 0);
     --muted: oklch(0.26 0.03 250);
     --muted-foreground: oklch(0.65 0.02 250);
-    --accent: oklch(0.32 0.06 235);
+    --accent: oklch(0.32 0.06 264);
     --accent-foreground: oklch(0.93 0 0);
+
     --destructive: oklch(0.45 0.15 25);
     --destructive-foreground: oklch(0.95 0 0);
+    --success: oklch(0.65 0.14 160);
+    --success-foreground: oklch(0.18 0.04 160);
+    --warning: oklch(0.75 0.1 95);
+    --warning-foreground: oklch(0.2 0.04 75);
+    --orange: oklch(0.72 0.16 45);
+    --orange-foreground: oklch(0.18 0.04 45);
+
     --border: oklch(0.32 0.03 250);
     --input: oklch(0.24 0.03 250);
-    --ring: oklch(0.65 0.13 235);
-    --chart-1: oklch(0.65 0.13 235);
-    --chart-2: oklch(0.6 0.1 200);
-    --chart-3: oklch(0.58 0.08 270);
-    --chart-4: oklch(0.65 0.1 180);
-    --chart-5: oklch(0.58 0.08 30);
-    --sidebar: oklch(0.16 0.02 250);
-    --sidebar-foreground: oklch(0.93 0.01 250);
-    --sidebar-primary: oklch(0.65 0.13 235);
-    --sidebar-primary-foreground: oklch(0.18 0.04 235);
-    --sidebar-accent: oklch(0.32 0.06 235);
+    --ring: oklch(0.62 0.2 264);
+
+    --chart-1: oklch(0.62 0.2 264);
+    --chart-2: oklch(0.65 0.14 160);
+    --chart-3: oklch(0.72 0.14 220);
+    --chart-4: oklch(0.72 0.16 45);
+    --chart-5: oklch(0.75 0.1 95);
+
+    --sidebar: oklch(0.19 0.02 250);
+    --sidebar-foreground: oklch(0.7 0.02 250);
+    --sidebar-primary: oklch(0.62 0.2 264);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.26 0.03 250);
     --sidebar-accent-foreground: oklch(0.93 0 0);
-    --sidebar-border: oklch(0.32 0.03 250);
-    --sidebar-ring: oklch(0.65 0.13 235);
+    --sidebar-border: oklch(0.3 0.03 250);
+    --sidebar-ring: oklch(0.62 0.2 264);
+
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.15);
+    --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.2);
 }
 
 @layer base {
@@ -140,23 +188,174 @@
     }
 
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground antialiased;
         font-family: var(--font-sans);
     }
 
-    /* Subtle transitions for interactive elements */
-    a, button, [role="button"], [type="button"], [type="submit"] {
+    a,
+    button,
+    [role='button'],
+    [type='button'],
+    [type='submit'] {
         @apply transition-colors duration-150 ease-out;
     }
 
-    /* Active nav item: primary (azul/cian) */
-    [data-sidebar="menu-button"][data-active="true"] {
+    /* Nav activo: píldora azul con texto blanco legible */
+    [data-sidebar='menu-button'][data-active='true'] {
         background-color: var(--sidebar-primary);
+        color: var(--sidebar-primary-foreground);
+        border-radius: 9999px;
+        font-weight: 600;
+    }
+
+    [data-sidebar='menu-button'][data-active='true'] svg,
+    [data-sidebar='menu-button'][data-active='true'] span {
+        color: inherit;
+    }
+
+    [data-sidebar='menu-button'][data-active='true']:hover {
+        background-color: var(--sidebar-primary);
+        opacity: 0.94;
         color: var(--sidebar-primary-foreground);
     }
-    [data-sidebar="menu-button"][data-active="true"]:hover {
-        background-color: var(--sidebar-primary);
-        opacity: 0.92;
-        color: var(--sidebar-primary-foreground);
+
+    [data-sidebar='menu-button']:not([data-active='true']) {
+        border-radius: 9999px;
+    }
+}
+
+@layer components {
+    .faro-page {
+        @apply flex h-full flex-1 flex-col gap-6 overflow-x-auto p-4 md:p-6;
+    }
+
+    .faro-page-icon {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary;
+    }
+
+    .faro-form-card {
+        @apply w-full space-y-4 rounded-2xl bg-card p-6 shadow-card;
+    }
+
+    .faro-form-grid {
+        @apply grid w-full gap-0 overflow-hidden rounded-xl border border-border/50 divide-x divide-y divide-border/50;
+    }
+
+    .faro-field {
+        @apply flex min-w-0 flex-col gap-1.5 bg-card p-3;
+    }
+
+    .faro-field > label,
+    .faro-field label {
+        @apply text-xs font-semibold tracking-wide text-muted-foreground uppercase;
+    }
+
+    .faro-field [data-slot='input'],
+    .faro-field [data-slot='select-trigger'],
+    .faro-field textarea,
+    .faro-field .faro-native-select {
+        @apply w-full rounded-lg border-0 bg-muted/40 shadow-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-0;
+    }
+
+    .faro-form-actions {
+        @apply flex w-full flex-col gap-2 border-t border-border/50 pt-4 sm:flex-row sm:flex-wrap;
+    }
+
+    .faro-form-actions > button,
+    .faro-form-actions > a {
+        @apply w-full sm:min-w-[9rem];
+    }
+
+    .faro-form-actions > [type='submit'],
+    .faro-form-actions > .faro-btn-primary {
+        @apply sm:flex-1;
+    }
+
+    .faro-action-bar {
+        @apply flex w-full flex-col gap-2 sm:flex-row;
+    }
+
+    .faro-action-bar > button,
+    .faro-action-bar > a {
+        @apply w-full flex-1 font-semibold;
+    }
+
+    .faro-auth-shell {
+        @apply relative flex min-h-dvh items-center justify-center bg-canvas p-6;
+    }
+
+    .faro-auth-input {
+        @apply h-11 w-full rounded-lg border border-border bg-white px-3 text-sm shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/80 focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/15 dark:border-border dark:bg-card;
+    }
+
+    .faro-table-wrap {
+        @apply overflow-x-auto rounded-xl bg-muted/30;
+    }
+
+    .faro-table-wrap table {
+        @apply w-full text-sm;
+    }
+
+    .faro-table-wrap thead tr {
+        @apply border-b border-border/40 bg-muted/40;
+    }
+
+    .faro-table-wrap th {
+        @apply px-4 py-3 text-left font-medium text-foreground;
+    }
+
+    .faro-table-wrap th.text-right {
+        @apply text-right;
+    }
+
+    .faro-table-wrap tbody tr {
+        @apply border-b border-border/30 transition-colors last:border-0 hover:bg-muted/25;
+    }
+
+    .faro-table-wrap td {
+        @apply px-4 py-3;
+    }
+
+    .faro-list-row {
+        @apply flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-card px-4 py-3 shadow-sm;
+    }
+
+    .faro-status-excelente {
+        @apply inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success;
+    }
+
+    .faro-status-bueno {
+        @apply inline-flex items-center rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary;
+    }
+
+    .faro-status-regular {
+        @apply inline-flex items-center rounded-full bg-warning/30 px-2.5 py-0.5 text-xs font-medium text-warning-foreground;
+    }
+
+    .faro-status-bajo {
+        @apply inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive;
+    }
+
+    .faro-textarea,
+    textarea.faro-textarea {
+        @apply flex min-h-20 w-full rounded-xl border border-border/50 bg-white px-3 py-2 text-sm transition-[color,box-shadow] outline-none focus-visible:border-primary/60 focus-visible:ring-[2.5px] focus-visible:ring-primary/20 dark:bg-card;
+    }
+
+    .faro-native-select {
+        @apply flex h-10 w-full rounded-xl border border-border/50 bg-white px-3 py-2 text-sm outline-none focus-visible:border-primary/60 focus-visible:ring-[2.5px] focus-visible:ring-primary/20 dark:bg-card;
+    }
+}
+
+@layer utilities {
+    .shadow-card {
+        box-shadow: var(--shadow-card);
+    }
+
+    .shadow-card-hover {
+        box-shadow: var(--shadow-card-hover);
+    }
+
+    .bg-gradient-brand {
+        background: linear-gradient(180deg, var(--brand-blue) 0%, var(--brand-cyan) 100%);
     }
 }

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class Alquiler extends Model
 {
@@ -65,14 +65,33 @@ class Alquiler extends Model
     {
         static::creating(function (Alquiler $alquiler): void {
             if (empty($alquiler->codigo)) {
-                do {
-                    $codigo = 'ALQ-'.strtoupper(Str::random(10));
-                } while (static::query()->where('codigo', $codigo)->exists());
-                $alquiler->codigo = $codigo;
+                $alquiler->codigo = static::reservarSiguienteCodigo();
             }
             if (empty($alquiler->estado)) {
                 $alquiler->estado = EstadoAlquiler::Borrador;
             }
+        });
+
+        static::created(function (Alquiler $alquiler): void {
+            AlquilerEstadoHistorial::registrar(
+                $alquiler,
+                null,
+                $alquiler->estadoEnum(),
+                $alquiler->user_id ?? auth()->id(),
+            );
+        });
+    }
+
+    public static function reservarSiguienteCodigo(): string
+    {
+        return DB::transaction(function (): string {
+            $maxNumerico = static::query()
+                ->lockForUpdate()
+                ->pluck('codigo')
+                ->map(fn (string $codigo): int => ctype_digit($codigo) ? (int) $codigo : 0)
+                ->max() ?? 0;
+
+            return (string) ($maxNumerico + 1);
         });
     }
 
@@ -96,6 +115,14 @@ class Alquiler extends Model
     public function pagos(): HasMany
     {
         return $this->hasMany(Pago::class, 'alquiler_id');
+    }
+
+    /** @return HasMany<AlquilerEstadoHistorial> */
+    public function historialEstados(): HasMany
+    {
+        return $this->hasMany(AlquilerEstadoHistorial::class, 'alquiler_id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
     }
 
     public function estadoEnum(): EstadoAlquiler

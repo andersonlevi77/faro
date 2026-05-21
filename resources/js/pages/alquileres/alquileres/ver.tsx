@@ -1,15 +1,19 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import estado from '@/routes/alquileres/estado';
 import pagosRoutes from '@/routes/alquileres/pagos';
 import { edit, index, show } from '@/routes/alquileres';
 import type { BreadcrumbItem } from '@/types';
+import { AlquilerEstadoPanel } from '@/components/alquiler-estado-panel';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fmtQ } from '@/lib/utils';
+import { fmtFecha, fmtFechaHora, fmtRangoFechas } from '@/lib/dates';
+import { badgeEstadoAlquiler, dotEstadoAlquiler } from '@/lib/estado-alquiler';
+import { cn, fmtQ } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -73,8 +77,29 @@ interface OpcionSelect {
     label: string;
 }
 
+interface EstadoInfo {
+    value: string;
+    label: string;
+    color: string;
+}
+
+interface HistorialEstado {
+    id: number;
+    estado_anterior: string | null;
+    estado_anterior_label: string | null;
+    estado_anterior_color: string | null;
+    estado_nuevo: string;
+    estado_nuevo_label: string;
+    estado_nuevo_color: string;
+    usuario: { name: string } | null;
+    created_at: string;
+}
+
 export default function AlquileresVer({
     alquiler,
+    estadoActual,
+    flujoPrincipal,
+    historialEstados,
     transicionesPermitidas,
     puedeEditar,
     puedeCambiarEstado,
@@ -84,7 +109,10 @@ export default function AlquileresVer({
     metodosPago,
 }: {
     alquiler: Alquiler;
-    transicionesPermitidas: OpcionSelect[];
+    estadoActual: EstadoInfo;
+    flujoPrincipal: EstadoInfo[];
+    historialEstados: HistorialEstado[];
+    transicionesPermitidas: (OpcionSelect & { color: string })[];
     puedeEditar: boolean;
     puedeCambiarEstado: boolean;
     puedeCobrar: boolean;
@@ -98,6 +126,7 @@ export default function AlquileresVer({
     ];
 
     const [devueltoOpen, setDevueltoOpen] = useState(false);
+    const { confirm, dialog } = useConfirmDialog();
 
     const pagoForm = useForm({
         tipo: '',
@@ -118,7 +147,18 @@ export default function AlquileresVer({
             setDevueltoOpen(true);
             return;
         }
-        router.post(estado.update.url({ alquiler: alquiler.id }), { estado: value });
+        const opcion = transicionesPermitidas.find((t) => t.value === value);
+        const label = opcion?.label ?? value;
+        const esCancelar = value === 'cancelado';
+        confirm({
+            title: esCancelar ? '¿Cancelar este alquiler?' : `¿Marcar como ${label}?`,
+            description: esCancelar
+                ? 'El contrato quedará cancelado y las unidades reservadas volverán a estar disponibles.'
+                : `El alquiler ${alquiler.codigo} pasará al estado «${label}».`,
+            confirmLabel: esCancelar ? 'Cancelar alquiler' : `Marcar: ${label}`,
+            variant: esCancelar ? 'destructive' : 'success',
+            onConfirm: () => router.post(estado.update.url({ alquiler: alquiler.id }), { estado: value }),
+        });
     };
 
     const registrarPago = (e: React.FormEvent) => {
@@ -129,7 +169,13 @@ export default function AlquileresVer({
     };
 
     const eliminarPago = (pagoId: number) => {
-        router.delete(pagosRoutes.destroy.url({ alquiler: alquiler.id, pago: pagoId }));
+        confirm({
+            title: '¿Eliminar este pago?',
+            description: 'Se quitará el registro del historial de cobros. Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar pago',
+            variant: 'destructive',
+            onConfirm: () => router.delete(pagosRoutes.destroy.url({ alquiler: alquiler.id, pago: pagoId })),
+        });
     };
 
     const confirmarDevolucion = (e: React.FormEvent) => {
@@ -143,12 +189,13 @@ export default function AlquileresVer({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            {dialog}
             <Head title={alquiler.codigo} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <IconActionTooltip label="Volver a la lista de alquileres">
-                            <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                            <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                                 <Link href={index.url()}>
                                     <ArrowLeft className="size-4" />
                                 </Link>
@@ -156,9 +203,15 @@ export default function AlquileresVer({
                         </IconActionTooltip>
                         <div>
                             <h1 className="text-xl font-semibold tracking-tight text-foreground">{alquiler.codigo}</h1>
-                            <p className="text-sm capitalize text-muted-foreground">
-                                Estado: {alquiler.estado.replace('_', ' ')}
-                            </p>
+                            <span
+                                className={cn(
+                                    'mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset',
+                                    badgeEstadoAlquiler(estadoActual.color),
+                                )}
+                            >
+                                <span className={cn('size-2 rounded-full', dotEstadoAlquiler(estadoActual.color))} />
+                                {estadoActual.label}
+                            </span>
                         </div>
                     </div>
                     {puedeEditar && (
@@ -171,21 +224,14 @@ export default function AlquileresVer({
                     )}
                 </div>
 
-                {puedeCambiarEstado && transicionesPermitidas.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Cambiar estado</CardTitle>
-                            <CardDescription>Flujo: borrador → reservado → entregado → en uso → devuelto → cerrado.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-2">
-                            {transicionesPermitidas.map((t) => (
-                                <Button key={t.value} type="button" variant="secondary" onClick={() => cambiarEstado(t.value)}>
-                                    Marcar: {t.label}
-                                </Button>
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
+                <AlquilerEstadoPanel
+                    estadoActual={estadoActual}
+                    flujoPrincipal={flujoPrincipal}
+                    historialEstados={historialEstados}
+                    transicionesPermitidas={transicionesPermitidas}
+                    puedeCambiarEstado={puedeCambiarEstado}
+                    onCambiarEstado={cambiarEstado}
+                />
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card>
@@ -204,18 +250,18 @@ export default function AlquileresVer({
                         <CardContent className="grid gap-2 text-sm">
                             <p>
                                 <span className="text-muted-foreground">Período previsto: </span>
-                                {alquiler.fecha_inicio_prevista} → {alquiler.fecha_fin_prevista}
+                                {fmtRangoFechas(alquiler.fecha_inicio_prevista, alquiler.fecha_fin_prevista)}
                             </p>
                             {alquiler.fecha_entrega_at && (
                                 <p>
                                     <span className="text-muted-foreground">Entrega: </span>
-                                    {alquiler.fecha_entrega_at}
+                                    {fmtFechaHora(alquiler.fecha_entrega_at)}
                                 </p>
                             )}
                             {alquiler.fecha_devolucion_at && (
                                 <p>
                                     <span className="text-muted-foreground">Devolución: </span>
-                                    {alquiler.fecha_devolucion_at}
+                                    {fmtFechaHora(alquiler.fecha_devolucion_at)}
                                 </p>
                             )}
                             {alquiler.usuario && (
@@ -229,31 +275,85 @@ export default function AlquileresVer({
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Balance financiero</CardTitle>
+                        <CardDescription className="text-pretty">
+                            Resumen de lo que el cliente debe pagar por este contrato y lo que ya ingresó en caja.
+                            La <strong>garantía</strong> (depósito o fianza) es un monto aparte del precio del alquiler: se cobra
+                            junto con el alquiler si la registras y, al devolver el equipo sin problemas, se puede devolver al cliente
+                            (registrando la devolución correspondiente). Si no hay garantía, solo aplica el total del alquiler.
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
-                            <div>
-                                <p className="text-muted-foreground">Total alquiler</p>
-                                <p className="tabular-nums font-medium">{fmtQ(resumen.total_alquiler)}</p>
+                    <CardContent className="space-y-6">
+                        <div>
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Contrato y garantía
+                            </p>
+                            <div className="faro-form-grid sm:grid-cols-3">
+                                <div className="faro-field">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        Inicio previsto
+                                    </p>
+                                    <p className="text-sm font-medium text-foreground">{fmtFecha(alquiler.fecha_inicio_prevista)}</p>
+                                </div>
+                                <div className="faro-field">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        Fin previsto
+                                    </p>
+                                    <p className="text-sm font-medium text-foreground">{fmtFecha(alquiler.fecha_fin_prevista)}</p>
+                                </div>
+                                <div className="faro-field">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        Garantía
+                                    </p>
+                                    <p className="text-sm font-medium tabular-nums text-foreground">{fmtQ(alquiler.deposito_monto)}</p>
+                                    <p className="text-xs leading-snug text-muted-foreground">
+                                        Monto acordado como garantía (no es el total del alquiler).
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-muted-foreground">Depósito</p>
-                                <p className="tabular-nums font-medium">{fmtQ(resumen.deposito)}</p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground">Cobrado</p>
-                                <p className="tabular-nums font-medium">{fmtQ(resumen.total_cobrado)}</p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground">Saldo pendiente</p>
-                                <p className={`tabular-nums text-lg font-semibold ${saldoNum > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                                    {fmtQ(resumen.saldo_pendiente)}
-                                </p>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-4">
+                            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Resumen de cobros
+                            </p>
+                            <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="rounded-lg border border-border/40 bg-muted/15 p-3">
+                                    <p className="text-xs font-medium text-muted-foreground">Total alquiler</p>
+                                    <p className="mt-1 tabular-nums text-lg font-semibold text-foreground">{fmtQ(resumen.total_alquiler)}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Suma de líneas (días × precio diario × cantidad).
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-border/40 bg-muted/15 p-3">
+                                    <p className="text-xs font-medium text-muted-foreground">Garantía</p>
+                                    <p className="mt-1 tabular-nums text-lg font-semibold text-foreground">{fmtQ(resumen.deposito)}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Monto de garantía del contrato (0 si no aplica); cuenta para lo que debe cubrir el cliente.
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-border/40 bg-muted/15 p-3">
+                                    <p className="text-xs font-medium text-muted-foreground">Cobrado</p>
+                                    <p className="mt-1 tabular-nums text-lg font-semibold text-foreground">{fmtQ(resumen.total_cobrado)}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Pagos registrados (alquiler, garantía, etc.) que ya ingresaron.
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-border/40 bg-muted/15 p-3">
+                                    <p className="text-xs font-medium text-muted-foreground">Saldo pendiente</p>
+                                    <p
+                                        className={`mt-1 tabular-nums text-lg font-semibold ${saldoNum > 0 ? 'text-destructive' : 'text-green-600'}`}
+                                    >
+                                        {fmtQ(resumen.saldo_pendiente)}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        (Total alquiler + garantía) menos lo cobrado. En verde: al día con los cobros.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         {parseFloat(resumen.total_devuelto) > 0 && (
-                            <p className="mt-2 text-xs text-muted-foreground">
-                                Total devuelto al cliente: {fmtQ(resumen.total_devuelto)}
+                            <p className="text-xs text-muted-foreground">
+                                Total devuelto al cliente: <span className="font-medium tabular-nums text-foreground">{fmtQ(resumen.total_devuelto)}</span>
                             </p>
                         )}
                     </CardContent>
@@ -290,7 +390,7 @@ export default function AlquileresVer({
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {alquiler.pagos.length > 0 ? (
-                            <div className="overflow-x-auto rounded-lg bg-muted/20">
+                            <div className="faro-table-wrap">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border/40 bg-muted/30">
@@ -311,16 +411,17 @@ export default function AlquileresVer({
                                                 <td className="px-4 py-2 text-right tabular-nums">{fmtQ(p.monto)}</td>
                                                 <td className="px-4 py-2 text-muted-foreground">{p.notas ?? '—'}</td>
                                                 <td className="px-4 py-2 text-muted-foreground">{p.registrado_por?.name ?? '—'}</td>
-                                                <td className="px-4 py-2 text-muted-foreground">{p.created_at}</td>
+                                                <td className="px-4 py-2 text-muted-foreground">{fmtFechaHora(p.created_at)}</td>
                                                 {puedeCobrar && (
                                                     <td className="px-4 py-2">
                                                         <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="size-7 text-destructive hover:text-destructive"
+                                                            type="button"
+                                                            variant="destructive"
+                                                            size="sm"
                                                             onClick={() => eliminarPago(p.id)}
                                                         >
                                                             <Trash2 className="size-4" />
+                                                            Eliminar
                                                         </Button>
                                                     </td>
                                                 )}
@@ -334,11 +435,12 @@ export default function AlquileresVer({
                         )}
 
                         {puedeCobrar && (
-                            <form onSubmit={registrarPago} className="grid gap-3 border-t border-border/40 pt-4 sm:grid-cols-4">
-                                <div className="space-y-1">
+                            <form onSubmit={registrarPago} className="space-y-0 border-t border-border/40 pt-4">
+                                <div className="faro-form-grid sm:grid-cols-4">
+                                <div className="faro-field">
                                     <Label htmlFor="tipo">Tipo</Label>
                                     <Select value={pagoForm.data.tipo} onValueChange={(v) => pagoForm.setData('tipo', v)}>
-                                        <SelectTrigger id="tipo">
+                                        <SelectTrigger id="tipo" className="w-full">
                                             <SelectValue placeholder="Seleccionar…" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -349,7 +451,7 @@ export default function AlquileresVer({
                                     </Select>
                                     {pagoForm.errors.tipo && <p className="text-xs text-destructive">{pagoForm.errors.tipo}</p>}
                                 </div>
-                                <div className="space-y-1">
+                                <div className="faro-field">
                                     <Label htmlFor="monto">Monto</Label>
                                     <Input
                                         id="monto"
@@ -362,10 +464,10 @@ export default function AlquileresVer({
                                     />
                                     {pagoForm.errors.monto && <p className="text-xs text-destructive">{pagoForm.errors.monto}</p>}
                                 </div>
-                                <div className="space-y-1">
+                                <div className="faro-field">
                                     <Label htmlFor="metodo_pago">Método</Label>
                                     <Select value={pagoForm.data.metodo_pago} onValueChange={(v) => pagoForm.setData('metodo_pago', v)}>
-                                        <SelectTrigger id="metodo_pago">
+                                        <SelectTrigger id="metodo_pago" className="w-full">
                                             <SelectValue placeholder="Seleccionar…" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -376,7 +478,7 @@ export default function AlquileresVer({
                                     </Select>
                                     {pagoForm.errors.metodo_pago && <p className="text-xs text-destructive">{pagoForm.errors.metodo_pago}</p>}
                                 </div>
-                                <div className="space-y-1">
+                                <div className="faro-field">
                                     <Label htmlFor="notas_pago">Notas</Label>
                                     <Input
                                         id="notas_pago"
@@ -385,9 +487,10 @@ export default function AlquileresVer({
                                         onChange={(e) => pagoForm.setData('notas', e.target.value)}
                                     />
                                 </div>
-                                <div className="sm:col-span-4">
-                                    <Button type="submit" disabled={pagoForm.processing} size="sm">
-                                        <Plus className="mr-1 size-4" />
+                                </div>
+                                <div className="faro-form-actions">
+                                    <Button type="submit" variant="success" disabled={pagoForm.processing} className="faro-btn-primary">
+                                        <Plus className="size-4" />
                                         Registrar pago
                                     </Button>
                                 </div>
@@ -410,7 +513,7 @@ export default function AlquileresVer({
                         <CardTitle className="text-base">Líneas</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="overflow-x-auto rounded-lg bg-muted/20">
+                        <div className="faro-table-wrap">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border/40 bg-muted/30">
@@ -456,7 +559,7 @@ export default function AlquileresVer({
                                 id="danio_descripcion"
                                 rows={3}
                                 placeholder="Describe los daños (opcional)"
-                                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                className="faro-textarea w-full border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 value={devueltoForm.data.danio_descripcion}
                                 onChange={(e) => devueltoForm.setData('danio_descripcion', e.target.value)}
                             />
@@ -500,7 +603,7 @@ export default function AlquileresVer({
                             <Button type="button" variant="outline" onClick={() => setDevueltoOpen(false)}>
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={devueltoForm.processing}>
+                            <Button type="submit" variant="success" disabled={devueltoForm.processing}>
                                 Confirmar devolución
                             </Button>
                         </DialogFooter>

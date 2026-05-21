@@ -19,8 +19,8 @@ class StoreMantenimientoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'producto_unidad_id' => ['nullable', 'exists:producto_unidades,id'],
-            'producto_id' => ['nullable', 'exists:productos,id'],
+            'producto_unidad_id' => ['nullable', 'prohibits:producto_id', 'exists:producto_unidades,id'],
+            'producto_id' => ['nullable', 'prohibits:producto_unidad_id', 'exists:productos,id'],
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string', 'max:2000'],
             'costo' => ['nullable', 'numeric', 'min:0'],

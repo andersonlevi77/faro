@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\EstadoAlquiler;
 use App\Http\Requests\UpdateAlquilerEstadoRequest;
 use App\Models\Alquiler;
+use App\Models\AlquilerEstadoHistorial;
 use App\Services\VerificadorDisponibilidadAlquiler;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +36,7 @@ class AlquilerEstadoController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $alquiler, $nuevo, $verificador): void {
+        DB::transaction(function () use ($request, $alquiler, $actual, $nuevo, $verificador): void {
             if ($nuevo === EstadoAlquiler::Reservado) {
                 $verificador->asignarUnidades($alquiler);
             }
@@ -56,6 +57,13 @@ class AlquilerEstadoController extends Controller
             }
 
             $alquiler->save();
+
+            AlquilerEstadoHistorial::registrar(
+                $alquiler,
+                $actual,
+                $nuevo,
+                $request->user()->id,
+            );
         });
 
         return back()->with('success', 'Estado actualizado a «'.$nuevo->etiqueta().'».');

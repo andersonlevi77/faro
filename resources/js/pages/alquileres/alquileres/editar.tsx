@@ -1,37 +1,30 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
+import { useMemo } from 'react';
 import InputError from '@/components/input-error';
+import { AlquilerLineasEditor } from '@/components/alquiler-lineas-editor';
+import { SearchableCombobox } from '@/components/searchable-combobox';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { edit, index, update } from '@/routes/alquileres';
+import {
+    clienteComboboxOptions,
+    type ClienteComboboxSource,
+    type ProductoAlquilerComboboxSource,
+} from '@/lib/combobox-options';
+import { diasContratoPrevistos, totalAlquilerEstimadoDesdeLineas } from '@/lib/alquiler-totales';
+import { fmtQ } from '@/lib/utils';
+import { destroy, edit, index, update } from '@/routes/alquileres';
 import type { BreadcrumbItem } from '@/types';
-
-interface ClienteOpt {
-    id: number;
-    nombre: string;
-    documento: string | null;
-}
-
-interface ProductoAlq {
-    id: number;
-    nombre: string;
-    codigo: string;
-    stock_alquiler: string;
-    precio_alquiler_diario: string;
-}
-
-interface LineaForm {
-    producto_id: number | '';
-    cantidad: string;
-}
 
 interface Linea {
     id: number;
     producto_id: number;
     cantidad: string;
+    precio_diario: string;
 }
 
 interface Alquiler {
@@ -51,13 +44,16 @@ export default function AlquileresEditar({
     productosAlquiler,
 }: {
     alquiler: Alquiler;
-    clientes: ClienteOpt[];
-    productosAlquiler: ProductoAlq[];
+    clientes: ClienteComboboxSource[];
+    productosAlquiler: ProductoAlquilerComboboxSource[];
 }) {
+    const clienteOptions = useMemo(() => clienteComboboxOptions(clientes), [clientes]);
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Alquileres', href: index.url() },
         { title: alquiler.codigo, href: edit.url({ alquiler: alquiler.id }) },
     ];
+
+    const { confirm, dialog } = useConfirmDialog();
 
     const { data, setData, put, processing, errors } = useForm({
         cliente_id: alquiler.cliente_id,
@@ -68,23 +64,42 @@ export default function AlquileresEditar({
         lineas: alquiler.lineas.map((l) => ({
             producto_id: l.producto_id,
             cantidad: l.cantidad,
-        })) as LineaForm[],
+            precio_diario: l.precio_diario,
+        })),
     });
 
-    const addLinea = () => {
-        setData('lineas', [...data.lineas, { producto_id: '', cantidad: '1' }]);
-    };
+    const productoPrecioMap = useMemo(() => {
+        const m = new Map<number, string>();
+        for (const p of productosAlquiler) {
+            m.set(p.id, p.precio_alquiler_diario);
+        }
+        return m;
+    }, [productosAlquiler]);
 
-    const removeLinea = (idx: number) => {
-        setData(
-            'lineas',
-            data.lineas.filter((_, i) => i !== idx),
-        );
-    };
+    const diasContrato = useMemo(
+        () => diasContratoPrevistos(data.fecha_inicio_prevista, data.fecha_fin_prevista),
+        [data.fecha_inicio_prevista, data.fecha_fin_prevista],
+    );
 
-    const updateLinea = (idx: number, patch: Partial<LineaForm>) => {
-        const next = data.lineas.map((l, i) => (i === idx ? { ...l, ...patch } : l));
-        setData('lineas', next);
+    const totalAlquilerEstimado = useMemo(
+        () =>
+            totalAlquilerEstimadoDesdeLineas(
+                data.fecha_inicio_prevista,
+                data.fecha_fin_prevista,
+                data.lineas,
+                productoPrecioMap,
+            ),
+        [data.fecha_inicio_prevista, data.fecha_fin_prevista, data.lineas, productoPrecioMap],
+    );
+
+    const eliminarBorrador = () => {
+        confirm({
+            title: '¿Eliminar este borrador?',
+            description: `Se eliminará el alquiler ${alquiler.codigo} y todas sus líneas. Esta acción no se puede deshacer.`,
+            confirmLabel: 'Eliminar alquiler',
+            variant: 'destructive',
+            onConfirm: () => router.delete(destroy.url({ alquiler: alquiler.id })),
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -94,11 +109,12 @@ export default function AlquileresEditar({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            {dialog}
             <Head title={`Editar ${alquiler.codigo}`} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex items-center gap-3">
                     <IconActionTooltip label="Volver a la lista de alquileres">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={index.url()}>
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -106,30 +122,26 @@ export default function AlquileresEditar({
                     </IconActionTooltip>
                     <h1 className="text-xl font-semibold tracking-tight text-foreground">Editar {alquiler.codigo}</h1>
                 </div>
-                <form
-                    onSubmit={handleSubmit}
-                    className="w-full space-y-6 rounded-xl bg-card p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
-                >
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2 sm:col-span-2">
+                <form onSubmit={handleSubmit} className="faro-form-card">
+                    <div className="faro-form-grid sm:grid-cols-3">
+                        <div className="faro-field sm:col-span-3">
                             <Label htmlFor="cliente_id">Cliente *</Label>
-                            <select
+                            <SearchableCombobox
                                 id="cliente_id"
                                 required
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={String(data.cliente_id)}
-                                onChange={(e) => setData('cliente_id', Number(e.target.value))}
-                            >
-                                {clientes.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.nombre}
-                                        {c.documento ? ` · ${c.documento}` : ''}
-                                    </option>
-                                ))}
-                            </select>
+                                value={data.cliente_id}
+                                onValueChange={(id) => {
+                                    if (id !== '') {
+                                        setData('cliente_id', id);
+                                    }
+                                }}
+                                options={clienteOptions}
+                                placeholder="Buscar por nombre, NIT o teléfono…"
+                                emptyMessage="Ningún cliente coincide con la búsqueda"
+                            />
                             <InputError message={errors.cliente_id} />
                         </div>
-                        <div className="space-y-2">
+                        <div className="faro-field">
                             <Label htmlFor="fecha_inicio_prevista">Inicio previsto *</Label>
                             <Input
                                 id="fecha_inicio_prevista"
@@ -140,7 +152,7 @@ export default function AlquileresEditar({
                             />
                             <InputError message={errors.fecha_inicio_prevista} />
                         </div>
-                        <div className="space-y-2">
+                        <div className="faro-field">
                             <Label htmlFor="fecha_fin_prevista">Fin previsto *</Label>
                             <Input
                                 id="fecha_fin_prevista"
@@ -151,8 +163,11 @@ export default function AlquileresEditar({
                             />
                             <InputError message={errors.fecha_fin_prevista} />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="deposito_monto">Depósito</Label>
+                        <div className="faro-field">
+                            <Label htmlFor="deposito_monto">
+                                Garantía{' '}
+                                <span className="font-normal normal-case text-muted-foreground">(opcional)</span>
+                            </Label>
                             <Input
                                 id="deposito_monto"
                                 type="number"
@@ -160,92 +175,69 @@ export default function AlquileresEditar({
                                 min="0"
                                 value={data.deposito_monto}
                                 onChange={(e) => setData('deposito_monto', e.target.value)}
+                                placeholder="0 — sin garantía"
                             />
+                            <p className="text-xs leading-snug text-muted-foreground">
+                                Déjalo en 0 o vacío si no hay garantía. Si tiene monto, suele devolverse al cerrar si no hay daños.
+                            </p>
                             <InputError message={errors.deposito_monto} />
                         </div>
-                        <div className="space-y-2 sm:col-span-2">
+                        <div className="faro-field sm:col-span-3">
                             <Label htmlFor="notas">Notas</Label>
                             <Input id="notas" value={data.notas} onChange={(e) => setData('notas', e.target.value)} />
                             <InputError message={errors.notas} />
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2">
-                            <Label className="text-base">Líneas *</Label>
-                            <Button type="button" variant="outline" size="sm" onClick={addLinea}>
-                                <Plus className="mr-1 size-4" />
-                                Añadir línea
-                            </Button>
+                    <AlquilerLineasEditor
+                        lineas={data.lineas}
+                        onLineasChange={(lineas) => setData('lineas', lineas)}
+                        productosAlquiler={productosAlquiler}
+                        errors={errors as Record<string, string>}
+                        onConfirmRemove={(_idx, onConfirm) =>
+                            confirm({
+                                title: '¿Quitar esta línea?',
+                                description:
+                                    'El producto se eliminará del borrador. Debes guardar para aplicar el cambio.',
+                                confirmLabel: 'Quitar línea',
+                                variant: 'destructive',
+                                onConfirm,
+                            })
+                        }
+                    />
+
+                    <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-4 shadow-sm">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-primary/90">
+                                    Total del alquiler (estimado)
+                                </p>
+                                <p className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-foreground">
+                                    {fmtQ(totalAlquilerEstimado)}
+                                </p>
+                            </div>
+                            {diasContrato > 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    {diasContrato} {diasContrato === 1 ? 'día' : 'días'} × líneas (cantidad × precio/día). No incluye la garantía opcional.
+                                </p>
+                            )}
                         </div>
-                        <InputError message={errors.lineas as string} />
-                        <div className="space-y-3">
-                            {data.lineas.map((linea, idx) => (
-                                <div
-                                    key={idx}
-                                    className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/10 p-4 sm:flex-row sm:items-end"
-                                >
-                                    <div className="min-w-0 flex-1 space-y-2">
-                                        <Label>Producto</Label>
-                                        <select
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                            value={linea.producto_id === '' ? '' : String(linea.producto_id)}
-                                            onChange={(e) =>
-                                                updateLinea(
-                                                    idx,
-                                                    e.target.value === '' ? { producto_id: '' } : { producto_id: Number(e.target.value) },
-                                                )
-                                            }
-                                        >
-                                            <option value="">Seleccionar</option>
-                                            {productosAlquiler.map((p) => (
-                                                <option key={p.id} value={p.id}>
-                                                    {p.nombre} (stock {p.stock_alquiler})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="w-full space-y-2 sm:w-32">
-                                        <Label>Cantidad</Label>
-                                        <Input
-                                            type="number"
-                                            step="0.001"
-                                            min="0.001"
-                                            value={linea.cantidad}
-                                            onChange={(e) => updateLinea(idx, { cantidad: e.target.value })}
-                                        />
-                                    </div>
-                                    <IconActionTooltip
-                                        label={
-                                            data.lineas.length <= 1
-                                                ? 'Debe existir al menos una línea'
-                                                : 'Quitar esta línea del alquiler'
-                                        }
-                                    >
-                                        <span className="inline-flex shrink-0">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="shrink-0 text-destructive"
-                                                disabled={data.lineas.length <= 1}
-                                                onClick={() => removeLinea(idx)}
-                                            >
-                                                <Trash2 className="size-4" />
-                                            </Button>
-                                        </span>
-                                    </IconActionTooltip>
-                                </div>
-                            ))}
-                        </div>
+                        {diasContrato === 0 && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                Completa las fechas de inicio y fin para calcular el total.
+                            </p>
+                        )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        <Button type="submit" disabled={processing}>
+                    <div className="faro-form-actions">
+                        <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
                             Guardar cambios
                         </Button>
                         <Button type="button" variant="outline" asChild>
                             <Link href={index.url()}>Volver al listado</Link>
+                        </Button>
+                        <Button type="button" variant="destructive" onClick={eliminarBorrador}>
+                            Eliminar borrador
                         </Button>
                     </div>
                 </form>

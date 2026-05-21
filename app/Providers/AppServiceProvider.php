@@ -28,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Role::class, RolePolicy::class);
 
+        $locale = (string) config('app.locale', 'es');
+
+        app()->setLocale($locale);
+        CarbonImmutable::setLocale($locale);
+
         $this->configureDefaults();
     }
 

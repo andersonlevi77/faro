@@ -49,6 +49,36 @@ enum EstadoAlquiler: string
         };
     }
 
+    public function color(): string
+    {
+        return match ($this) {
+            self::Borrador => 'gray',
+            self::Reservado => 'yellow',
+            self::Entregado => 'blue',
+            self::EnUso => 'indigo',
+            self::Devuelto => 'green',
+            self::Cerrado => 'emerald',
+            self::Cancelado => 'red',
+        };
+    }
+
+    /**
+     * Estados del flujo principal (sin cancelado).
+     *
+     * @return list<self>
+     */
+    public static function flujoPrincipal(): array
+    {
+        return [
+            self::Borrador,
+            self::Reservado,
+            self::Entregado,
+            self::EnUso,
+            self::Devuelto,
+            self::Cerrado,
+        ];
+    }
+
     public function puedeTransicionarA(self $destino): bool
     {
         return match ($this) {

@@ -26,10 +26,10 @@ export default function RolesVer({ rol, matrizPermisos }: { rol: RolVer; matrizP
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Rol: ${rol.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex flex-wrap items-center gap-3">
                     <IconActionTooltip label="Volver a la lista de roles">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={index.url()}>
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -42,7 +42,7 @@ export default function RolesVer({ rol, matrizPermisos }: { rol: RolVer; matrizP
                         </p>
                     </div>
                 </div>
-                <Card className="w-full shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                <Card className="w-full">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <Shield className="size-4 text-primary" />

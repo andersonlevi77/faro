@@ -33,10 +33,10 @@ export default function ClientesCrear() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nuevo cliente" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex items-center gap-3">
                     <IconActionTooltip label="Volver a la lista de clientes">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={index.url()}>
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -46,47 +46,55 @@ export default function ClientesCrear() {
                 </div>
                 <form
                     onSubmit={handleSubmit}
-                    className="w-full space-y-5 rounded-xl bg-card p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
+                    className="faro-form-card space-y-5"
                 >
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2 sm:col-span-2">
+                    <div className="faro-form-grid sm:grid-cols-2">
+                        <div className="faro-field sm:col-span-2">
                             <Label htmlFor="nombre">Nombre o razón social *</Label>
                             <Input id="nombre" value={data.nombre} onChange={(e) => setData('nombre', e.target.value)} required />
                             <InputError message={errors.nombre} />
                         </div>
-                        <div className="space-y-2">
+                        <div className="faro-field">
                             <Label htmlFor="documento">Documento (NIT / CI)</Label>
                             <Input id="documento" value={data.documento} onChange={(e) => setData('documento', e.target.value)} />
                             <InputError message={errors.documento} />
                         </div>
-                        <div className="space-y-2">
+                        <div className="faro-field">
                             <Label htmlFor="email">Email</Label>
                             <Input id="email" type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} />
                             <InputError message={errors.email} />
                         </div>
-                        <div className="space-y-2">
+                        <div className="faro-field">
                             <Label htmlFor="telefono">Teléfono</Label>
-                            <Input id="telefono" value={data.telefono} onChange={(e) => setData('telefono', e.target.value)} />
+                            <Input
+                                id="telefono"
+                                inputMode="numeric"
+                                maxLength={8}
+                                pattern="\d{8}"
+                                placeholder="12345678"
+                                value={data.telefono}
+                                onChange={(e) => setData('telefono', e.target.value.replace(/\D/g, '').slice(0, 8))}
+                            />
                             <InputError message={errors.telefono} />
                         </div>
-                        <div className="space-y-2">
+                        <div className="faro-field">
                             <Label htmlFor="ciudad">Ciudad</Label>
                             <Input id="ciudad" value={data.ciudad} onChange={(e) => setData('ciudad', e.target.value)} />
                             <InputError message={errors.ciudad} />
                         </div>
-                        <div className="space-y-2 sm:col-span-2">
+                        <div className="faro-field sm:col-span-2">
                             <Label htmlFor="direccion">Dirección</Label>
                             <Input id="direccion" value={data.direccion} onChange={(e) => setData('direccion', e.target.value)} />
                             <InputError message={errors.direccion} />
                         </div>
-                        <div className="space-y-2 sm:col-span-2">
+                        <div className="faro-field sm:col-span-2">
                             <Label htmlFor="notas">Notas</Label>
                             <Input id="notas" value={data.notas} onChange={(e) => setData('notas', e.target.value)} />
                             <InputError message={errors.notas} />
                         </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        <Button type="submit" disabled={processing}>
+                    <div className="faro-form-actions">
+                        <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
                             Guardar
                         </Button>
                         <Button type="button" variant="outline" asChild>

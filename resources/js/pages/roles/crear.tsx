@@ -51,10 +51,10 @@ export default function RolesCrear({ matrizPermisos }: { matrizPermisos: MatrizP
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nuevo rol" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex items-center gap-3">
                     <IconActionTooltip label="Volver a la lista de roles">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={index.url()}>
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -67,7 +67,7 @@ export default function RolesCrear({ matrizPermisos }: { matrizPermisos: MatrizP
                 </div>
                 <form
                     onSubmit={handleSubmit}
-                    className="w-full space-y-6 rounded-xl bg-card p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
+                    className="faro-form-card"
                 >
                     <div className="space-y-2">
                         <Label htmlFor="name">Nombre del rol *</Label>
@@ -92,7 +92,7 @@ export default function RolesCrear({ matrizPermisos }: { matrizPermisos: MatrizP
                         <InputError message={errors.permissions} />
                     </div>
                     <div className="flex gap-2">
-                        <Button type="submit" disabled={processing}>
+                        <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
                             Guardar rol
                         </Button>
                         <Button type="button" variant="outline" asChild>

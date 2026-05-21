@@ -3,21 +3,25 @@
 use App\Http\Controllers\AlquilerController;
 use App\Http\Controllers\AlquilerEstadoController;
 use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MantenimientoController;
+use App\Http\Controllers\MarcaController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProductoUnidadController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
 
-Route::inertia('/', 'welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+})->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
@@ -44,8 +48,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
     Route::get('usuarios/{user}/editar', [UsuarioController::class, 'edit'])->name('usuarios.edit');
     Route::put('usuarios/{user}', [UsuarioController::class, 'update'])->name('usuarios.update');
+    Route::patch('usuarios/{user}/activo', [UsuarioController::class, 'updateActivo'])->name('usuarios.activo.update');
+    Route::delete('usuarios/{user}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
 
     Route::resource('roles', RoleController::class);
+
+    Route::post('categorias', [CategoriaController::class, 'store'])->name('categorias.store');
+    Route::post('marcas', [MarcaController::class, 'store'])->name('marcas.store');
+    Route::post('presentaciones', [PresentacionController::class, 'store'])->name('presentaciones.store');
 
     Route::resource('productos', ProductoController::class)->names('productos');
     Route::resource('productos.unidades', ProductoUnidadController::class)

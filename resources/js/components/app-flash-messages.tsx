@@ -31,21 +31,21 @@ export function AppFlashMessages() {
     const hayErroresValidacion = mensajes.length > 0;
 
     return (
-        <div className="space-y-3 px-4 pt-3 md:px-5" role="region" aria-label="Mensajes del sistema">
+        <div className="space-y-3 px-4 pt-3 md:px-6" role="region" aria-label="Mensajes del sistema">
             {flash?.success ? (
-                <div className="flex gap-3 rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-foreground">
-                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                <div className="flex gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-foreground">
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
                     <p className="min-w-0 leading-relaxed">{flash.success}</p>
                 </div>
             ) : null}
             {flash?.error ? (
-                <div className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                <div className="flex gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                     <p className="min-w-0 leading-relaxed font-medium">{flash.error}</p>
                 </div>
             ) : null}
             {hayErroresValidacion ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
                     <p className="flex items-start gap-2 font-medium text-destructive">
                         <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                         <span>No se pudo guardar. Revisa los datos o los mensajes siguientes.</span>

@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, Trash2, Pencil, Wrench, X, Check } from 'lucide-react'
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,6 +76,7 @@ export default function ProductoUnidadesIndex({
         { title: producto.nombre, href: show.url({ producto: producto.id }) },
         { title: 'Unidades', href: unidadesIndex.url({ producto: producto.id }) },
     ];
+    const { confirm, dialog } = useConfirmDialog();
 
     const [editingId, setEditingId] = useState<number | null>(null);
     const [useGenerate, setUseGenerate] = useState(true);
@@ -115,17 +117,22 @@ export default function ProductoUnidadesIndex({
     };
 
     const deleteUnidad = (u: Unidad) => {
-        if (!confirm(`¿Eliminar unidad ${u.codigo}?`)) return;
-        router.delete(unidadDestroy.url({ unidade: u.id }));
+        confirm({
+            title: `¿Eliminar unidad ${u.codigo}?`,
+            description: 'Se eliminará esta unidad del producto. Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar unidad',
+            onConfirm: () => router.delete(unidadDestroy.url({ unidade: u.id })),
+        });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            {dialog}
             <Head title={`Unidades — ${producto.nombre}`} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex items-center gap-3">
                     <IconActionTooltip label="Volver a la ficha del producto">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={show.url({ producto: producto.id })}>
                                 <ArrowLeft className="size-4" />
                             </Link>

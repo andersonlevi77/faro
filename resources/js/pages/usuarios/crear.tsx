@@ -66,10 +66,10 @@ export default function UsuariosCrear({ roles }: { roles: Role[] }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nuevo usuario" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex items-center gap-3">
                     <IconActionTooltip label="Volver a la lista de usuarios">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={index.url()}>
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -85,15 +85,15 @@ export default function UsuariosCrear({ roles }: { roles: Role[] }) {
                 </div>
                 <form
                     onSubmit={handleSubmit}
-                    className="w-full space-y-6 rounded-xl bg-card p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
+                    className="faro-form-card"
                 >
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2 sm:col-span-2">
+                    <div className="faro-form-grid sm:grid-cols-2">
+                        <div className="faro-field sm:col-span-2">
                             <Label htmlFor="name">Nombre completo *</Label>
                             <Input id="name" value={data.name} onChange={(e) => setData('name', e.target.value)} required autoComplete="name" />
                             <InputError message={errors.name} />
                         </div>
-                        <div className="space-y-2 sm:col-span-2">
+                        <div className="faro-field sm:col-span-2">
                             <Label htmlFor="email">Correo electrónico *</Label>
                             <Input
                                 id="email"
@@ -105,8 +105,8 @@ export default function UsuariosCrear({ roles }: { roles: Role[] }) {
                             />
                             <InputError message={errors.email} />
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex flex-wrap items-end justify-between gap-2">
+                        <div className="faro-field">
+                            <div className="flex min-h-8 flex-wrap items-end justify-between gap-2">
                                 <Label htmlFor="password">Contraseña *</Label>
                                 <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1.5" onClick={rellenarContraseñaAleatoria}>
                                     <Wand2 className="size-3.5" />
@@ -122,8 +122,10 @@ export default function UsuariosCrear({ roles }: { roles: Role[] }) {
                             />
                             <InputError message={errors.password} />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password_confirmation">Confirmar contraseña *</Label>
+                        <div className="faro-field">
+                            <div className="flex min-h-8 items-end">
+                                <Label htmlFor="password_confirmation">Confirmar contraseña *</Label>
+                            </div>
                             <PasswordInput
                                 id="password_confirmation"
                                 value={data.password_confirmation}
@@ -139,7 +141,7 @@ export default function UsuariosCrear({ roles }: { roles: Role[] }) {
                             <h2 className="text-base font-medium text-foreground">Roles</h2>
                             <p className="text-sm text-muted-foreground">Puedes dejarlo sin roles y asignarlos después desde la lista.</p>
                         </div>
-                        <div className="space-y-2">
+                        <div className="faro-field">
                             {roles.map((r) => (
                                 <label
                                     key={r.id}
@@ -157,8 +159,8 @@ export default function UsuariosCrear({ roles }: { roles: Role[] }) {
                         </div>
                         <InputError message={errors.roles} />
                     </div>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        <Button type="submit" disabled={processing}>
+                    <div className="faro-form-actions">
+                        <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
                             Crear usuario
                         </Button>
                         <Button type="button" variant="outline" asChild>

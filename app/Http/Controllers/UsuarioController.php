@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUsuarioRequest;
+use App\Http\Requests\UpdateUsuarioActivoRequest;
 use App\Http\Requests\UpdateUsuarioRolesRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -54,6 +56,7 @@ class UsuarioController extends Controller
         unset($validated['roles']);
 
         $validated['email_verified_at'] = now();
+        $validated['activo'] = true;
 
         $user = User::query()->create($validated);
         $user->syncRoles($roles);
@@ -88,5 +91,40 @@ class UsuarioController extends Controller
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         return to_route('usuarios.index')->with('success', 'Roles actualizados para '.$user->name.'.');
+    }
+
+    public function updateActivo(UpdateUsuarioActivoRequest $request, User $user): RedirectResponse
+    {
+        $this->authorize('update', $user);
+
+        $activo = $request->boolean('activo');
+
+        if (auth()->id() === $user->id && ! $activo) {
+            return back()->with('error', 'No puedes deshabilitar tu propia cuenta.');
+        }
+
+        $user->update(['activo' => $activo]);
+
+        if (! $activo) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
+
+        $mensaje = $activo
+            ? 'Usuario '.$user->name.' habilitado.'
+            : 'Usuario '.$user->name.' deshabilitado. Ya no podrá iniciar sesión.';
+
+        return back()->with('success', $mensaje);
+    }
+
+    public function destroy(User $user): RedirectResponse
+    {
+        $this->authorize('delete', $user);
+
+        $nombre = $user->name;
+
+        DB::table('sessions')->where('user_id', $user->id)->delete();
+        $user->delete();
+
+        return to_route('usuarios.index')->with('success', 'Usuario '.$nombre.' eliminado permanentemente.');
     }
 }

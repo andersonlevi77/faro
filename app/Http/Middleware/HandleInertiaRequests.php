@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ConsultaAlquileresNotificaciones;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -52,6 +53,21 @@ class HandleInertiaRequests extends Middleware
                     : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'alquilerNotificaciones' => fn () => $this->alquilerNotificaciones($request),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function alquilerNotificaciones(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null || ! $user->can('alquileres.viewAny')) {
+            return null;
+        }
+
+        return (new ConsultaAlquileresNotificaciones)->paraCompartir();
     }
 }

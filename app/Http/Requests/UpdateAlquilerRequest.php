@@ -32,6 +32,7 @@ class UpdateAlquilerRequest extends FormRequest
             'lineas' => ['required', 'array', 'min:1'],
             'lineas.*.producto_id' => ['required', 'exists:productos,id'],
             'lineas.*.cantidad' => ['required', 'numeric', 'min:0.001'],
+            'lineas.*.precio_diario' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

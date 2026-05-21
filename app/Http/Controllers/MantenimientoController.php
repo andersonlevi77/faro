@@ -6,6 +6,7 @@ use App\Enums\EstadoMantenimiento;
 use App\Http\Requests\StoreMantenimientoRequest;
 use App\Http\Requests\UpdateMantenimientoRequest;
 use App\Models\Mantenimiento;
+use App\Models\Producto;
 use App\Models\ProductoUnidad;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,6 +53,32 @@ class MantenimientoController extends Controller
 
         return Inertia::render('mantenimientos/crear', [
             'unidadInicial' => $unidad,
+            'productos' => Producto::query()
+                ->where('activo', true)
+                ->with(['categoria:id,nombre', 'marca:id,nombre'])
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'codigo', 'categoria_id', 'marca_id'])
+                ->map(fn (Producto $producto) => [
+                    'id' => $producto->id,
+                    'nombre' => $producto->nombre,
+                    'codigo' => $producto->codigo,
+                    'marca_nombre' => $producto->marca?->nombre,
+                    'categoria_nombre' => $producto->categoria?->nombre,
+                ])
+                ->values(),
+            'unidades' => ProductoUnidad::query()
+                ->with('producto:id,nombre,codigo')
+                ->orderBy('codigo')
+                ->get()
+                ->map(fn (ProductoUnidad $unidad) => [
+                    'id' => $unidad->id,
+                    'codigo' => $unidad->codigo,
+                    'estado' => $unidad->estado->value,
+                    'estado_label' => $unidad->estado->etiqueta(),
+                    'producto_id' => $unidad->producto_id,
+                    'producto_nombre' => $unidad->producto?->nombre,
+                    'producto_codigo' => $unidad->producto?->codigo,
+                ]),
         ]);
     }
 

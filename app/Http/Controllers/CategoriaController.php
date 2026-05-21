@@ -3,64 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCategoriaRequest;
-use App\Http\Requests\UpdateCategoriaRequest;
 use App\Models\Categoria;
+use App\Models\Producto;
+use Illuminate\Http\JsonResponse;
 
 class CategoriaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function store(StoreCategoriaRequest $request): JsonResponse
     {
-        //
-    }
+        abort_unless(
+            $request->user()->can('create', Producto::class) || $request->user()->can('update', Producto::class),
+            403,
+        );
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
+        $categoria = Categoria::create([
+            'nombre' => $request->validated('nombre'),
+            'descripcion' => $request->validated('descripcion'),
+            'creado_por' => $request->user()->id,
+        ]);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreCategoriaRequest $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Categoria $categoria)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Categoria $categoria)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateCategoriaRequest $request, Categoria $categoria)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Categoria $categoria)
-    {
-        //
+        return response()->json([
+            'id' => $categoria->id,
+            'nombre' => $categoria->nombre,
+        ], 201);
     }
 }

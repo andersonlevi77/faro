@@ -87,7 +87,7 @@ export default function Reportes({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reportes" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 {/* Selector año */}
                 <div className="flex items-center gap-3">
                     <h1 className="text-xl font-semibold tracking-tight">Reportes {anio}</h1>
@@ -104,7 +104,7 @@ export default function Reportes({
 
                 {/* Resumen cards */}
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                    <Card>
                         <CardHeader className="pb-2">
                             <CardDescription>Ingresos cobrados</CardDescription>
                             <CardTitle className="text-2xl tabular-nums text-green-700 dark:text-green-400">
@@ -115,7 +115,7 @@ export default function Reportes({
                             <p className="text-xs text-muted-foreground">Total de pagos recibidos en {anio}.</p>
                         </CardContent>
                     </Card>
-                    <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                    <Card>
                         <CardHeader className="pb-2">
                             <CardDescription>Costo de mantenimiento</CardDescription>
                             <CardTitle className="flex items-center gap-2 text-2xl tabular-nums">
@@ -127,7 +127,7 @@ export default function Reportes({
                             <p className="text-xs text-muted-foreground">Suma de mantenimientos completados en {anio}.</p>
                         </CardContent>
                     </Card>
-                    <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                    <Card>
                         <CardHeader className="pb-2">
                             <CardDescription>Alquileres creados</CardDescription>
                             <CardTitle className="flex items-center gap-2 text-2xl tabular-nums">
@@ -143,7 +143,7 @@ export default function Reportes({
 
                 {/* Gráficos de barras */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Ingresos mensuales</CardTitle>
                             <CardDescription>Pagos cobrados por mes en {anio}.</CardDescription>
@@ -152,7 +152,7 @@ export default function Reportes({
                             <BarGroup data={ingresosPorMes} label="Ingresos" />
                         </CardContent>
                     </Card>
-                    <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Costos de mantenimiento mensuales</CardTitle>
                             <CardDescription>Gastos en mantenimiento completado por mes.</CardDescription>
@@ -165,7 +165,7 @@ export default function Reportes({
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     {/* Alquileres por estado */}
-                    <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Alquileres por estado</CardTitle>
                             <CardDescription>Distribución de contratos creados en {anio}.</CardDescription>
@@ -196,7 +196,7 @@ export default function Reportes({
                     </Card>
 
                     {/* Top productos */}
-                    <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <Package className="size-4 text-primary" />
@@ -208,7 +208,7 @@ export default function Reportes({
                             {topProductos.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">Sin datos para el período.</p>
                             ) : (
-                                <div className="overflow-x-auto rounded-lg bg-muted/20">
+                                <div className="faro-table-wrap">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-border/40 bg-muted/30">

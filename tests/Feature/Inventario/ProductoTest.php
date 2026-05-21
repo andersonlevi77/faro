@@ -36,7 +36,7 @@ test('authenticated users can access create product form', function () {
         ->has('presentaciones'));
 });
 
-test('authenticated users can store a valid product', function () {
+test('authenticated users can store a valid rental product', function () {
     $user = User::factory()->create();
     $categoria = Categoria::factory()->create();
     $marca = Marca::factory()->create();
@@ -44,21 +44,27 @@ test('authenticated users can store a valid product', function () {
     $this->actingAs($user);
 
     $response = $this->post(route('productos.store'), [
-        'nombre' => 'Paracetamol 500mg',
+        'nombre' => 'Andamio 2m',
         'codigo' => 'PRD-001',
-        'descripcion' => 'Analgésico',
+        'descripcion' => 'Andamio metálico',
         'marca_id' => $marca->id,
         'categoria_id' => $categoria->id,
         'presentacion_id' => $presentacion->id,
-        'precio_compra' => 2.50,
-        'precio_venta' => 5.00,
         'activo' => true,
+        'es_alquilable' => true,
+        'tracking_mode' => 'bulk',
+        'precio_alquiler_diario' => 75.00,
+        'deposito_unitario' => 500.00,
+        'stock_alquiler' => 12,
+        'stock_minimo' => 2,
     ]);
 
     $response->assertRedirect(route('productos.index'));
     $this->assertDatabaseHas('productos', [
         'codigo' => 'PRD-001',
-        'nombre' => 'Paracetamol 500mg',
+        'nombre' => 'Andamio 2m',
+        'es_alquilable' => true,
+        'precio_alquiler_diario' => '75.00',
     ]);
 });
 
@@ -69,16 +75,16 @@ test('product store validation fails with invalid data', function () {
     $response = $this->post(route('productos.store'), [
         'nombre' => '',
         'codigo' => '',
-        'precio_compra' => -1,
-        'precio_venta' => '',
+        'es_alquilable' => true,
+        'precio_alquiler_diario' => -1,
     ]);
 
-    $response->assertSessionHasErrors(['nombre', 'codigo', 'precio_compra', 'precio_venta']);
+    $response->assertSessionHasErrors(['nombre', 'codigo', 'precio_alquiler_diario']);
 });
 
 test('authenticated users can view and update a product', function () {
     $user = User::factory()->create();
-    $producto = Producto::factory()->create();
+    $producto = Producto::factory()->alquilableBulk()->create();
     $this->actingAs($user);
 
     $response = $this->get(route('productos.edit', $producto));
@@ -87,12 +93,15 @@ test('authenticated users can view and update a product', function () {
     $response = $this->put(route('productos.update', $producto), [
         'nombre' => 'Producto actualizado',
         'codigo' => $producto->codigo,
-        'precio_compra' => 3.00,
-        'precio_venta' => 6.00,
         'activo' => true,
+        'es_alquilable' => true,
+        'tracking_mode' => 'bulk',
+        'precio_alquiler_diario' => 90.00,
+        'stock_alquiler' => 8,
     ]);
 
     $response->assertRedirect(route('productos.index'));
     $producto->refresh();
     expect($producto->nombre)->toBe('Producto actualizado');
+    expect($producto->precio_alquiler_diario)->toBe('90.00');
 });

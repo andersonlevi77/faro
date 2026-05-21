@@ -3,64 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMarcaRequest;
-use App\Http\Requests\UpdateMarcaRequest;
 use App\Models\Marca;
+use App\Models\Producto;
+use Illuminate\Http\JsonResponse;
 
 class MarcaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function store(StoreMarcaRequest $request): JsonResponse
     {
-        //
-    }
+        abort_unless(
+            $request->user()->can('create', Producto::class) || $request->user()->can('update', Producto::class),
+            403,
+        );
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
+        $marca = Marca::create([
+            'nombre' => $request->validated('nombre'),
+            'creado_por' => $request->user()->id,
+        ]);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreMarcaRequest $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Marca $marca)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Marca $marca)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateMarcaRequest $request, Marca $marca)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Marca $marca)
-    {
-        //
+        return response()->json([
+            'id' => $marca->id,
+            'nombre' => $marca->nombre,
+        ], 201);
     }
 }

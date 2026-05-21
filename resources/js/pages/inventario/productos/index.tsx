@@ -4,16 +4,20 @@ import AppLayout from '@/layouts/app-layout';
 import { create, destroy, edit, index } from '@/routes/productos';
 import type { BreadcrumbItem } from '@/types';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { fmtQ } from '@/lib/utils';
 
 interface Producto {
     id: number;
     nombre: string;
     codigo: string;
-    codigo_barras: string | null;
-    precio_venta: string;
+    precio_alquiler_diario: string | null;
+    stock_alquiler: string;
+    tracking_mode: string;
+    es_alquilable: boolean;
     activo: boolean;
     categoria?: { id: number; nombre: string } | null;
     marca?: { id: number; nombre: string } | null;
@@ -40,6 +44,7 @@ export default function ProductosIndex({
         { title: 'Inventario', href: index.url() },
         { title: 'Productos', href: index.url() },
     ];
+    const { confirm, dialog } = useConfirmDialog();
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -49,26 +54,30 @@ export default function ProductosIndex({
     };
 
     const handleDestroy = (id: number) => {
-        if (confirm('¿Eliminar este producto?')) {
-            router.delete(destroy.url({ producto: id }));
-        }
+        confirm({
+            title: '¿Eliminar este producto?',
+            description: 'Se eliminará el producto del inventario. Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar producto',
+            onConfirm: () => router.delete(destroy.url({ producto: id })),
+        });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            {dialog}
             <Head title="Productos" />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
-                <Card className="shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <div className="faro-page">
+                <Card>
                     <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 pb-4">
                         <div>
                             <CardTitle className="flex items-center gap-2 text-foreground">
-                                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <span className="faro-page-icon">
                                     <Package className="size-4" />
                                 </span>
                                 Productos
                             </CardTitle>
                             <CardDescription className="mt-1">
-                                Catálogo de productos del inventario
+                                Catálogo de artículos disponibles para alquiler
                             </CardDescription>
                         </div>
                         <Button asChild className="shrink-0">
@@ -85,7 +94,7 @@ export default function ProductosIndex({
                                 <Input
                                     name="buscar"
                                     defaultValue={filters?.buscar}
-                                    placeholder="Buscar por nombre, código o código de barras..."
+                                    placeholder="Buscar por nombre o código…"
                                     className="pl-9"
                                 />
                             </div>
@@ -93,14 +102,15 @@ export default function ProductosIndex({
                                 Buscar
                             </Button>
                         </form>
-                        <div className="overflow-x-auto rounded-lg bg-muted/20">
+                        <div className="faro-table-wrap">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border/40 bg-muted/30">
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Código</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Nombre</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Categoría</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Precio venta</th>
+                                        <th className="px-4 py-3 text-left font-medium text-foreground">Precio / día</th>
+                                        <th className="px-4 py-3 text-left font-medium text-foreground">Disponibilidad</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Estado</th>
                                         <th className="w-[120px] px-4 py-3 text-left font-medium text-foreground">Acciones</th>
                                     </tr>
@@ -109,7 +119,7 @@ export default function ProductosIndex({
                                     {productos.data.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan={6}
+                                                colSpan={7}
                                                 className="px-4 py-10 text-center text-muted-foreground"
                                             >
                                                 No hay productos. Crea el primero desde «Nuevo producto».
@@ -124,7 +134,18 @@ export default function ProductosIndex({
                                                 <td className="px-4 py-3 font-mono text-muted-foreground">{p.codigo}</td>
                                                 <td className="px-4 py-3 font-medium text-foreground">{p.nombre}</td>
                                                 <td className="px-4 py-3 text-muted-foreground">{p.categoria?.nombre ?? '—'}</td>
-                                                <td className="px-4 py-3 tabular-nums text-foreground">{p.precio_venta}</td>
+                                                <td className="px-4 py-3 tabular-nums text-foreground">
+                                                    {p.es_alquilable && p.precio_alquiler_diario
+                                                        ? fmtQ(p.precio_alquiler_diario)
+                                                        : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {!p.es_alquilable
+                                                        ? 'No alquilable'
+                                                        : p.tracking_mode === 'individual'
+                                                          ? 'Por unidad'
+                                                          : p.stock_alquiler}
+                                                </td>
                                                 <td className="px-4 py-3">
                                                     <span
                                                         className={

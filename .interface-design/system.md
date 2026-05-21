@@ -1,32 +1,45 @@
-# Faro — Sistema de interfaz (POS Farmacia)
+# Faro — Sistema de interfaz (plantilla DocuMed)
 
 ## Dirección y sensación
 
-- **Dominio:** Farmacia, inventario, mostrador, confianza, claridad, salud.
-- **Paleta:** Azul/cian, alegre y profesional. Primario = azul (hue 235). Fondos limpios; dark con tonos azulados suaves.
-- **Profundidad:** Bordes suaves (border-border/80), sombras muy ligeras (shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]). Sin sombras fuertes.
-- **Superficies:** Sidebar mismo fondo que el canvas (--sidebar = --background); separación por borde (--sidebar-border). Header con borde inferior y opcional backdrop-blur.
+- **Dominio:** Gestión de alquileres, inventario, clientes, operaciones diarias.
+- **Paleta:** Azul primario `#155DFC`, verde éxito `#1DA871`, amarillo `#FFD971`, naranja `#FC6D3B`, texto `#1A1A1A`. Fondo canvas gris muy claro; cards blancas.
+- **Profundidad:** Sombras suaves (`shadow-card`), sin bordes gruesos en cards. Separación sidebar/contenido por borde sutil.
+- **Formas:** Border-radius generoso (16px cards, píldoras en nav y badges, inputs redondeados).
 
 ## Tokens clave
 
-- **Primary:** oklch azul/cian (hue 235) — botones principales, ítem activo en nav, enlaces de acción, estado “Activo”.
-- **Ring/Focus:** Mismo azul que primary.
-- **Bordes:** Neutros, chroma bajo. Evitar bordes duros.
-- **Inputs:** Fondo blanco (bg-white) para sensación de limpieza; dark:bg-card. Borde sutil border-border/50; focus con ring primary/20.
+- **Primary:** Azul royal — botones, nav activo, títulos de bienvenida.
+- **Canvas:** Fondo del área principal (`--canvas`).
+- **Success / Warning / Orange:** Semánticos para KPIs y estados.
+- **Sidebar:** Blanco; ítem activo = píldora azul sólida con texto blanco.
 
 ## Espaciado
 
-- Base: 4px. Contenido de página: p-4 md:p-5, gap-5 entre secciones. Formularios: max-w-4xl para aprovechar ancho; cards p-6, sin bordes fuertes.
+- Contenido: `p-4 md:p-6`, `gap-6` entre secciones.
+- Header: `h-[4.25rem]`, sticky, fondo card.
 
 ## Patrones de componentes
 
-- **Card:** sin borde o muy sutil; shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]. Títulos con icono en contenedor redondeado bg-primary/10 text-primary (size-9 rounded-lg).
-- **Tabla:** contenedor bg-muted/20 sin borde grueso; thead bg-muted/30, bordes border-border/30–40.
-- **Botón Buscar:** variant secondary (neutro), coherente con la paleta minimal.
-- **Botón primario:** primary (azul/cian). Outline/Ghost: hover:bg-accent hover:text-accent-foreground.
-- **Sidebar nav:** Ítem activo bg-sidebar-primary (azul), texto sidebar-primary-foreground. Hover: sidebar-accent.
-- **App sidebar header:** h-14, border-b border-sidebar-border, bg-background/95 backdrop-blur. SidebarTrigger con hover:bg-sidebar-accent.
+- **Card:** `rounded-2xl`, `shadow-card`, sin borde, hover `shadow-card-hover`.
+- **Button:** `rounded-xl`; outline secundario; primario azul sólido.
+- **Input:** `rounded-xl` o `rounded-full` en búsqueda del header.
+- **Badge:** `rounded-full` (píldora).
+- **Dialog / Sheet / Dropdown / Select:** `rounded-2xl` o `rounded-xl`, `shadow-card`, overlay con blur.
+- **StatKpiCard:** Label uppercase pequeño, icono en cuadrado `rounded-xl` con tinte, número grande.
+- **Header:** Título página | búsqueda centrada | campana + avatar con nombre/rol.
+- **Sidebar:** Logo gradiente + nombre + subtítulo; nav píldora; cerrar sesión rojo al pie.
+
+## Clases globales (usar en todas las páginas)
+
+- `.faro-page` — contenedor de página (padding, gap).
+- `.faro-page-icon` — icono de título en card.
+- `.faro-form-card` — formularios en card.
+- `.faro-table-wrap` — tablas con estilo unificado.
+- `.faro-list-row` — filas de listas.
+- `.faro-textarea` / `.faro-native-select` — controles nativos.
+- `.faro-status-*` — badges de estado (excelente, bueno, regular, bajo).
 
 ## Dark mode
 
-- Primary azul más brillante sobre fondo oscuro; fondos con tinte azulado; bordes suaves.
+- Primary más brillante; canvas y cards con tinte azulado oscuro; sombras más marcadas.

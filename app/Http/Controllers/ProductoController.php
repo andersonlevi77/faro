@@ -24,8 +24,7 @@ class ProductoController extends Controller
         $productos = Producto::query()
             ->with(['categoria', 'marca', 'presentacion'])
             ->when($request->filled('buscar'), fn ($q) => $q->where('nombre', 'like', '%'.$request->buscar.'%')
-                ->orWhere('codigo', 'like', '%'.$request->buscar.'%')
-                ->orWhere('codigo_barras', 'like', '%'.$request->buscar.'%'))
+                ->orWhere('codigo', 'like', '%'.$request->buscar.'%'))
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -57,10 +56,12 @@ class ProductoController extends Controller
 
         $data = $request->validated();
         $data['creado_por'] = $request->user()->id;
+        $data['precio_compra'] = 0;
+        $data['precio_venta'] = 0;
+        $data['stock_maximo'] = null;
         $data['activo'] = $request->boolean('activo', true);
-        $data['es_alquilable'] = $request->boolean('es_alquilable', false);
+        $data['es_alquilable'] = $request->boolean('es_alquilable', true);
         $data['stock_minimo'] = $request->filled('stock_minimo') ? (int) $request->stock_minimo : 0;
-        $data['stock_maximo'] = $request->filled('stock_maximo') ? (int) $request->stock_maximo : null;
         $data['tracking_mode'] = $request->input('tracking_mode', TrackingMode::Bulk->value);
         $data['stock_alquiler'] = $request->filled('stock_alquiler') ? $request->string('stock_alquiler') : '0';
         $data['precio_alquiler_diario'] = $request->filled('precio_alquiler_diario') ? $request->string('precio_alquiler_diario') : null;
@@ -75,7 +76,7 @@ class ProductoController extends Controller
     {
         $this->authorize('view', $producto);
 
-        $producto->load(['categoria', 'marca', 'presentacion', 'lotes' => fn ($q) => $q->orderBy('fecha_vencimiento')]);
+        $producto->load(['categoria', 'marca', 'presentacion']);
 
         $estadosUnidad = collect(EstadoUnidad::cases())->map(fn (EstadoUnidad $e) => [
             'value' => $e->value,
@@ -96,8 +97,6 @@ class ProductoController extends Controller
     {
         $this->authorize('update', $producto);
 
-        $producto->load(['lotes' => fn ($q) => $q->orderBy('fecha_vencimiento')]);
-
         return Inertia::render('inventario/productos/editar', [
             'producto' => $producto,
             'categorias' => Categoria::orderBy('nombre')->get(['id', 'nombre']),
@@ -116,10 +115,12 @@ class ProductoController extends Controller
 
         $data = $request->validated();
         $data['actualizado_por'] = $request->user()->id;
+        $data['precio_compra'] = 0;
+        $data['precio_venta'] = 0;
+        $data['stock_maximo'] = null;
         $data['activo'] = $request->boolean('activo', true);
-        $data['es_alquilable'] = $request->boolean('es_alquilable', false);
+        $data['es_alquilable'] = $request->boolean('es_alquilable', true);
         $data['stock_minimo'] = $request->filled('stock_minimo') ? (int) $request->stock_minimo : 0;
-        $data['stock_maximo'] = $request->filled('stock_maximo') ? (int) $request->stock_maximo : null;
         $data['tracking_mode'] = $request->input('tracking_mode', TrackingMode::Bulk->value);
         $data['stock_alquiler'] = $request->filled('stock_alquiler') ? $request->string('stock_alquiler') : '0';
         $data['precio_alquiler_diario'] = $request->filled('precio_alquiler_diario') ? $request->string('precio_alquiler_diario') : null;

@@ -31,22 +31,21 @@ const sidebarNavItems: NavItem[] = [
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
 
-    // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
 
     return (
-        <div className="px-4 py-6">
+        <div className="faro-page max-w-5xl">
             <Heading
                 title="Configuración"
                 description="Gestiona la configuración de tu perfil y cuenta"
             />
 
-            <div className="flex flex-col lg:flex-row lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-48">
+            <div className="flex flex-col lg:flex-row lg:gap-10">
+                <aside className="w-full lg:w-52">
                     <nav
-                        className="flex flex-col space-y-1 space-x-0"
+                        className="flex flex-col gap-1 rounded-2xl border border-border/50 bg-card p-2 shadow-card"
                         aria-label="Configuración"
                     >
                         {sidebarNavItems.map((item, index) => (
@@ -55,8 +54,9 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                                 size="sm"
                                 variant="ghost"
                                 asChild
-                                className={cn('w-full justify-start', {
-                                    'bg-muted': isCurrentOrParentUrl(item.href),
+                                className={cn('w-full justify-start rounded-xl', {
+                                    'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground':
+                                        isCurrentOrParentUrl(item.href),
                                 })}
                             >
                                 <Link href={item.href}>
@@ -72,8 +72,8 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
 
                 <Separator className="my-6 lg:hidden" />
 
-                <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
+                <div className="min-w-0 flex-1">
+                    <section className="space-y-8 rounded-2xl border border-border/50 bg-card p-6 shadow-card md:p-8">
                         {children}
                     </section>
                 </div>

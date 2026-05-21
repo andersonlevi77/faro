@@ -8,117 +8,91 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
 type Props = {
     status?: string;
     canResetPassword: boolean;
-    canRegister: boolean;
 };
 
-export default function Login({
-    status,
-    canResetPassword,
-    canRegister,
-}: Props) {
+export default function Login({ status, canResetPassword }: Props) {
     return (
-        <AuthLayout
-            title="Iniciar sesión"
-            description="Introduce tu correo y contraseña para acceder"
-        >
+        <AuthLayout>
             <Head title="Iniciar sesión" />
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
+            {status && (
+                <p className="mb-4 text-center text-sm text-success">{status}</p>
+            )}
+
+            <Form {...store.form()} resetOnSuccess={['password']} className="w-full space-y-5">
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Correo electrónico</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Contraseña</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="auth-accent ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            ¿Olvidaste tu contraseña?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Contraseña"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
-
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Recordarme</Label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Entrar
-                            </Button>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                                Correo electrónico
+                            </Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                name="email"
+                                required
+                                autoFocus
+                                tabIndex={1}
+                                autoComplete="email"
+                                placeholder="nombre@empresa.com"
+                                className="faro-auth-input"
+                            />
+                            <InputError message={errors.email} />
                         </div>
 
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                ¿No tienes cuenta?{' '}
-                                <TextLink
-                                    href={register()}
-                                    className="auth-accent"
-                                    tabIndex={5}
-                                >
-                                    Crear cuenta
-                                </TextLink>
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                                    Contraseña
+                                </Label>
+                                {canResetPassword && (
+                                    <TextLink
+                                        href={request()}
+                                        className="text-xs text-muted-foreground hover:text-foreground"
+                                        tabIndex={5}
+                                    >
+                                        ¿Olvidaste tu contraseña?
+                                    </TextLink>
+                                )}
                             </div>
-                        )}
+                            <PasswordInput
+                                id="password"
+                                name="password"
+                                required
+                                tabIndex={2}
+                                autoComplete="current-password"
+                                placeholder="••••••••"
+                                className="faro-auth-input"
+                            />
+                            <InputError message={errors.password} />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="remember" name="remember" tabIndex={3} />
+                            <Label htmlFor="remember" className="text-sm font-normal text-foreground">
+                                Recordar
+                            </Label>
+                        </div>
+
+                        <Button
+                            type="submit"
+                            className="h-11 w-full rounded-lg bg-foreground text-background hover:bg-foreground/90"
+                            tabIndex={4}
+                            disabled={processing}
+                            data-test="login-button"
+                        >
+                            {processing && <Spinner />}
+                            Iniciar sesión
+                        </Button>
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-emerald-700/90 dark:text-emerald-300/90">
-                    {status}
-                </div>
-            )}
         </AuthLayout>
     );
 }

@@ -32,9 +32,20 @@ class Categoria extends Model
     protected static function booted(): void
     {
         static::creating(function (Categoria $categoria): void {
-            if (empty($categoria->slug) && ! empty($categoria->nombre)) {
-                $categoria->slug = Str::slug($categoria->nombre);
+            if (! empty($categoria->slug) || empty($categoria->nombre)) {
+                return;
             }
+
+            $baseSlug = Str::slug($categoria->nombre);
+            $slug = $baseSlug;
+            $suffix = 2;
+
+            while (static::query()->where('slug', $slug)->exists()) {
+                $slug = $baseSlug.'-'.$suffix;
+                $suffix++;
+            }
+
+            $categoria->slug = $slug;
         });
     }
 

@@ -50,10 +50,10 @@ export default function UsuariosEditar({ usuario, roles }: { usuario: Usuario; r
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Roles: ${usuario.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-4 md:p-5">
+            <div className="faro-page">
                 <div className="flex items-center gap-3">
                     <IconActionTooltip label="Volver a la lista de usuarios">
-                        <Button variant="ghost" size="icon" className="size-9 rounded-lg hover:bg-accent" asChild>
+                        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-muted" asChild>
                             <Link href={index.url()}>
                                 <ArrowLeft className="size-4" />
                             </Link>
@@ -86,7 +86,7 @@ export default function UsuariosEditar({ usuario, roles }: { usuario: Usuario; r
                                 </label>
                             ))}
                             <div className="flex gap-2 pt-4">
-                                <Button type="submit" disabled={processing}>
+                                <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
                                     Guardar
                                 </Button>
                                 <Button type="button" variant="outline" asChild>
