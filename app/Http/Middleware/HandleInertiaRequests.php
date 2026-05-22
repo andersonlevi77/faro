@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use App\Services\ConsultaAlquileresNotificaciones;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -25,6 +27,24 @@ class HandleInertiaRequests extends Middleware
     public function version(Request $request): ?string
     {
         return parent::version($request);
+    }
+
+    /**
+     * Handle Inertia version changes using the URL generator so that
+     * behind a reverse proxy the redirect always uses APP_URL, not the
+     * internal host seen by php -S / php-fpm.
+     */
+    public function onVersionChange(Request $request, Response $response): Response
+    {
+        if ($request->hasSession()) {
+            $request->session()->reflash();
+        }
+
+        $path = $request->getPathInfo();
+        $query = $request->getQueryString();
+        $url = url($path.($query ? '?'.$query : ''));
+
+        return Inertia::location($url);
     }
 
     /**
