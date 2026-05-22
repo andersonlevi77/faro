@@ -75,9 +75,10 @@ stderr_logfile_maxbytes=0\n' > /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 10000
 
-CMD php artisan config:clear \
-    && php artisan config:cache \
-    && php artisan route:cache \
+CMD php artisan optimize:clear \
+    && php artisan config:clear \
+    && php artisan route:clear \
+    && php artisan view:clear \
     && php artisan migrate --force \
     && php artisan db:seed --class=RenderSeeder --force \
     && /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
