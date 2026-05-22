@@ -26,4 +26,7 @@ RUN chmod -R 777 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD php artisan migrate --force && php -S 0.0.0.0:10000 -t public
+CMD php artisan migrate --force \
+    && php artisan db:seed --class=RenderSeeder --force \
+    && php artisan config:cache \
+    && php -S 0.0.0.0:10000 -t public
