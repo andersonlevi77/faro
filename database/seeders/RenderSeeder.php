@@ -9,17 +9,22 @@ use Illuminate\Support\Facades\Hash;
 class RenderSeeder extends Seeder
 {
     /**
+     * Contraseña de demo que cumple las reglas de producción (12+, mayúsculas, minúsculas, @).
+     */
+    public const ADMIN_PASSWORD = 'Password@123456';
+
+    /**
      * Bootstrap mínimo para producción: roles/permisos y usuario administrador.
      */
     public function run(): void
     {
         $this->call(RolePermissionSeeder::class);
 
-        $admin = User::firstOrCreate(
+        $admin = User::updateOrCreate(
             ['email' => 'admin@demo.com'],
             [
                 'name' => 'Admin Demo',
-                'password' => Hash::make('password'),
+                'password' => Hash::make(self::ADMIN_PASSWORD),
                 'activo' => true,
             ],
         );
