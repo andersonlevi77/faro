@@ -27,7 +27,7 @@ export function AppBrandLogo({
     showAppText = variant !== 'auth',
 }: AppBrandLogoProps) {
     const { name } = usePage().props as { name?: string };
-    const appName = name ?? 'Faro';
+    const appName = name ?? 'Construnor';
 
     const inner = (
         <span
