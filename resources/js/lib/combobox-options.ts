@@ -14,6 +14,7 @@ export type ProductoAlquilerComboboxSource = {
     nombre: string;
     codigo: string;
     stock_alquiler: string;
+    stock_disponible: string;
     precio_alquiler_diario: string;
     marca_nombre?: string | null;
     categoria_nombre?: string | null;

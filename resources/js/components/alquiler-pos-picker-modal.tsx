@@ -12,6 +12,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ProductoAlquilerComboboxSource } from '@/lib/combobox-options';
+import {
+    disponibleRestanteProducto,
+    parseStockCantidad,
+} from '@/lib/stock-disponible';
 import { matchesSearchQuery } from '@/lib/search-text';
 import { cn, fmtQ } from '@/lib/utils';
 import type { AlquilerLineaForm } from '@/types/alquiler-linea';
@@ -26,17 +30,30 @@ type AlquilerPosPickerModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     productos: ProductoAlquilerComboboxSource[];
+    lineasFormulario?: AlquilerLineaForm[];
     onConfirm: (lineas: AlquilerLineaForm[]) => void;
 };
+
+function cantidadEnCarrito(carrito: CartItem[], productoId: number, excluirProductoId?: number): number {
+    return carrito.reduce((sum, item) => {
+        if (item.producto_id !== productoId || item.producto_id === excluirProductoId) {
+            return sum;
+        }
+
+        return sum + parseStockCantidad(item.cantidad);
+    }, 0);
+}
 
 export function AlquilerPosPickerModal({
     open,
     onOpenChange,
     productos,
+    lineasFormulario = [],
     onConfirm,
 }: AlquilerPosPickerModalProps) {
     const [busqueda, setBusqueda] = useState('');
     const [carrito, setCarrito] = useState<CartItem[]>([]);
+    const [errorStock, setErrorStock] = useState<string | null>(null);
 
     const productosFiltrados = useMemo(() => {
         const filtrados = productos.filter((producto) =>
@@ -56,16 +73,43 @@ export function AlquilerPosPickerModal({
         [productos],
     );
 
+    const maxCantidadProducto = (producto: ProductoAlquilerComboboxSource, cantidadActualEnItem: number): number => {
+        const otrosEnCarrito = cantidadEnCarrito(carrito, producto.id) - cantidadActualEnItem;
+
+        return disponibleRestanteProducto(
+            producto.stock_disponible,
+            lineasFormulario,
+            producto.id,
+            otrosEnCarrito,
+        );
+    };
+
     const agregarProducto = (producto: ProductoAlquilerComboboxSource) => {
+        setErrorStock(null);
+
         setCarrito((prev) => {
             const existente = prev.find((item) => item.producto_id === producto.id);
+            const cantidadActual = existente ? parseStockCantidad(existente.cantidad) : 0;
+            const max = maxCantidadProducto(producto, cantidadActual);
+
+            if (max < 0.001) {
+                setErrorStock(`«${producto.nombre}» no tiene unidades disponibles para alquilar.`);
+
+                return prev;
+            }
 
             if (existente) {
-                const cantidad = Number(existente.cantidad) + 1;
+                if (cantidadActual >= max) {
+                    setErrorStock(
+                        `Solo hay ${max} unidad(es) disponible(s) de «${producto.nombre}».`,
+                    );
+
+                    return prev;
+                }
 
                 return prev.map((item) =>
                     item.producto_id === producto.id
-                        ? { ...item, cantidad: String(cantidad) }
+                        ? { ...item, cantidad: String(Math.min(cantidadActual + 1, max)) }
                         : item,
                 );
             }
@@ -82,18 +126,67 @@ export function AlquilerPosPickerModal({
     };
 
     const actualizarCarrito = (productoId: number, patch: Partial<CartItem>) => {
+        setErrorStock(null);
+        const producto = productoPorId.get(productoId);
+        if (!producto) {
+            return;
+        }
+
         setCarrito((prev) =>
-            prev.map((item) => (item.producto_id === productoId ? { ...item, ...patch } : item)),
+            prev.map((item) => {
+                if (item.producto_id !== productoId) {
+                    return item;
+                }
+
+                const merged = { ...item, ...patch };
+                const max = maxCantidadProducto(producto, 0);
+                let cantidad = parseStockCantidad(merged.cantidad);
+                if (cantidad > max) {
+                    cantidad = max;
+                    setErrorStock(
+                        `Máximo ${max} unidad(es) disponible(s) de «${producto.nombre}».`,
+                    );
+                }
+                if (cantidad < 0.001) {
+                    cantidad = 0.001;
+                }
+
+                return { ...merged, cantidad: String(cantidad) };
+            }),
         );
     };
 
     const quitarDelCarrito = (productoId: number) => {
+        setErrorStock(null);
         setCarrito((prev) => prev.filter((item) => item.producto_id !== productoId));
     };
 
+    const carritoExcedeStock = (): string | null => {
+        for (const item of carrito) {
+            const producto = productoPorId.get(item.producto_id);
+            if (!producto) {
+                continue;
+            }
+            const max = maxCantidadProducto(producto, 0);
+            if (parseStockCantidad(item.cantidad) > max) {
+                return `«${producto.nombre}» supera el disponible (${max} unidad(es)).`;
+            }
+        }
+
+        return null;
+    };
+
     const handleConfirm = () => {
+        const error = carritoExcedeStock();
+        if (error) {
+            setErrorStock(error);
+
+            return;
+        }
+
         const lineas: AlquilerLineaForm[] = carrito.map((item) => ({
             producto_id: item.producto_id,
+            paquete_id: '',
             cantidad: item.cantidad,
             precio_diario: item.precio_diario,
         }));
@@ -101,6 +194,7 @@ export function AlquilerPosPickerModal({
         onConfirm(lineas);
         setCarrito([]);
         setBusqueda('');
+        setErrorStock(null);
         onOpenChange(false);
     };
 
@@ -108,6 +202,7 @@ export function AlquilerPosPickerModal({
         if (!next) {
             setCarrito([]);
             setBusqueda('');
+            setErrorStock(null);
         }
 
         onOpenChange(next);
@@ -126,8 +221,8 @@ export function AlquilerPosPickerModal({
                         <div>
                             <DialogTitle className="text-lg font-semibold">Catálogo de equipos</DialogTitle>
                             <DialogDescription className="text-sm text-muted-foreground">
-                                Toca los productos para agregarlos. Ajusta cantidad y precio por día antes de
-                                confirmar.
+                                Toca los productos para agregarlos. La cantidad no puede superar lo disponible
+                                para alquilar.
                             </DialogDescription>
                         </div>
                     </div>
@@ -162,17 +257,28 @@ export function AlquilerPosPickerModal({
                                         const cantidadCarrito = enCarrito
                                             ? Number(enCarrito.cantidad)
                                             : 0;
+                                        const disponible = disponibleRestanteProducto(
+                                            producto.stock_disponible,
+                                            lineasFormulario,
+                                            producto.id,
+                                            cantidadEnCarrito(carrito, producto.id),
+                                        );
+                                        const sinStock = disponible < 0.001;
 
                                         return (
                                             <button
                                                 key={producto.id}
                                                 type="button"
+                                                disabled={sinStock && cantidadCarrito === 0}
                                                 onClick={() => agregarProducto(producto)}
                                                 className={cn(
                                                     'flex flex-col rounded-xl border p-3 text-left transition-[box-shadow,transform,border-color]',
                                                     'hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm active:scale-[0.98]',
                                                     cantidadCarrito > 0 &&
                                                         'border-primary bg-primary/5 ring-1 ring-primary/20',
+                                                    sinStock &&
+                                                        cantidadCarrito === 0 &&
+                                                        'cursor-not-allowed opacity-50 hover:border-border hover:bg-transparent hover:shadow-none',
                                                 )}
                                             >
                                                 <span className="line-clamp-2 text-sm leading-snug font-medium text-foreground">
@@ -186,15 +292,26 @@ export function AlquilerPosPickerModal({
                                                         {producto.marca_nombre}
                                                     </span>
                                                 )}
-                                                <div className="mt-2 flex items-end justify-between gap-1">
+                                                <div className="mt-2 flex flex-col gap-1">
                                                     <span className="text-sm font-semibold text-primary">
                                                         {fmtQ(producto.precio_alquiler_diario)}
                                                         <span className="text-xs font-normal text-muted-foreground">
                                                             /día
                                                         </span>
                                                     </span>
-                                                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                                        Stock {producto.stock_alquiler}
+                                                    <span
+                                                        className={cn(
+                                                            'w-fit rounded-full px-2 py-0.5 text-[10px] font-medium',
+                                                            sinStock && cantidadCarrito === 0
+                                                                ? 'bg-destructive/10 text-destructive'
+                                                                : 'bg-muted text-muted-foreground',
+                                                        )}
+                                                    >
+                                                        Disp. {disponible.toLocaleString('es-GT')}
+                                                        <span className="text-muted-foreground/80">
+                                                            {' '}
+                                                            / {producto.stock_alquiler} total
+                                                        </span>
                                                     </span>
                                                 </div>
                                                 {cantidadCarrito > 0 && (
@@ -232,6 +349,9 @@ export function AlquilerPosPickerModal({
                                             return null;
                                         }
 
+                                        const max = maxCantidadProducto(producto, 0);
+                                        const cantidad = parseStockCantidad(item.cantidad);
+
                                         return (
                                             <li
                                                 key={item.producto_id}
@@ -243,7 +363,7 @@ export function AlquilerPosPickerModal({
                                                             {producto.nombre}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">
-                                                            {producto.codigo}
+                                                            Máx. {max} disponible(s)
                                                         </p>
                                                     </div>
                                                     <Button
@@ -267,10 +387,11 @@ export function AlquilerPosPickerModal({
                                                                 variant="outline"
                                                                 size="icon"
                                                                 className="size-8 shrink-0"
+                                                                disabled={cantidad <= 0.001}
                                                                 onClick={() => {
                                                                     const next = Math.max(
                                                                         0.001,
-                                                                        Number(item.cantidad) - 1,
+                                                                        cantidad - 1,
                                                                     );
                                                                     actualizarCarrito(item.producto_id, {
                                                                         cantidad: String(next),
@@ -283,6 +404,7 @@ export function AlquilerPosPickerModal({
                                                                 type="number"
                                                                 step="0.001"
                                                                 min="0.001"
+                                                                max={max}
                                                                 value={item.cantidad}
                                                                 onChange={(event) =>
                                                                     actualizarCarrito(item.producto_id, {
@@ -296,10 +418,11 @@ export function AlquilerPosPickerModal({
                                                                 variant="outline"
                                                                 size="icon"
                                                                 className="size-8 shrink-0"
+                                                                disabled={cantidad >= max}
                                                                 onClick={() =>
                                                                     actualizarCarrito(item.producto_id, {
                                                                         cantidad: String(
-                                                                            Number(item.cantidad) + 1,
+                                                                            Math.min(cantidad + 1, max),
                                                                         ),
                                                                     })
                                                                 }
@@ -336,11 +459,16 @@ export function AlquilerPosPickerModal({
                 </div>
 
                 <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/50 bg-muted/20 px-5 py-4 sm:flex-row sm:justify-between sm:px-6">
-                    <p className="text-sm text-muted-foreground">
-                        {carrito.length > 0
-                            ? `${carrito.length} producto(s) · ${totalUnidades} unidad(es) en total`
-                            : 'Sin productos en el carrito'}
-                    </p>
+                    <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                            {carrito.length > 0
+                                ? `${carrito.length} producto(s) · ${totalUnidades} unidad(es) en total`
+                                : 'Sin productos en el carrito'}
+                        </p>
+                        {errorStock && (
+                            <p className="text-sm font-medium text-destructive">{errorStock}</p>
+                        )}
+                    </div>
                     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <Button
                             type="button"

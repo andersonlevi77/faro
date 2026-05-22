@@ -10,6 +10,7 @@ use App\Models\Categoria;
 use App\Models\Marca;
 use App\Models\Presentacion;
 use App\Models\Producto;
+use App\Services\VerificadorDisponibilidadAlquiler;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,7 +18,7 @@ use Inertia\Response;
 
 class ProductoController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, VerificadorDisponibilidadAlquiler $verificador): Response
     {
         $this->authorize('viewAny', Producto::class);
 
@@ -28,6 +29,15 @@ class ProductoController extends Controller
             ->latest()
             ->paginate(15)
             ->withQueryString();
+
+        $productos->through(function (Producto $producto) use ($verificador): Producto {
+            $producto->setAttribute(
+                'disponibilidad_actual',
+                $verificador->cantidadDisponibleActiva($producto),
+            );
+
+            return $producto;
+        });
 
         return Inertia::render('inventario/productos/index', [
             'productos' => $productos,

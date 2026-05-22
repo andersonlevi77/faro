@@ -18,6 +18,7 @@ import {
     productoAlquilerComboboxOptions,
     type ProductoAlquilerComboboxSource,
 } from '@/lib/combobox-options';
+import { disponibleRestanteProducto, parseStockCantidad } from '@/lib/stock-disponible';
 import { fmtQ } from '@/lib/utils';
 import {
     alquilerLineaFromPaquete,
@@ -97,6 +98,39 @@ export function AlquilerLineasEditor({
 
     const updateLinea = (idx: number, patch: Partial<AlquilerLineaForm>) => {
         onLineasChange(lineas.map((linea, index) => (index === idx ? { ...linea, ...patch } : linea)));
+    };
+
+    const updateCantidadLinea = (idx: number, valor: string) => {
+        const linea = lineas[idx];
+        if (linea.producto_id === '' || linea.paquete_id !== '') {
+            updateLinea(idx, { cantidad: valor });
+
+            return;
+        }
+
+        const producto = productoPorId.get(linea.producto_id);
+        if (!producto) {
+            updateLinea(idx, { cantidad: valor });
+
+            return;
+        }
+
+        const max = disponibleRestanteProducto(
+            producto.stock_disponible,
+            lineas,
+            linea.producto_id,
+            0,
+            idx,
+        );
+        let cantidad = parseStockCantidad(valor);
+        if (cantidad > max) {
+            cantidad = max;
+        }
+        if (cantidad < 0.001 && max >= 0.001) {
+            cantidad = 0.001;
+        }
+
+        updateLinea(idx, { cantidad: String(cantidad) });
     };
 
     const setTipoLinea = (idx: number, tipo: 'producto' | 'paquete') => {
@@ -247,9 +281,20 @@ export function AlquilerLineasEditor({
                                             type="number"
                                             step="0.001"
                                             min="0.001"
+                                            max={
+                                                producto && !esPaquete
+                                                    ? disponibleRestanteProducto(
+                                                          producto.stock_disponible,
+                                                          lineas,
+                                                          producto.id,
+                                                          0,
+                                                          idx,
+                                                      )
+                                                    : undefined
+                                            }
                                             value={linea.cantidad}
                                             onChange={(event) =>
-                                                updateLinea(idx, { cantidad: event.target.value })
+                                                updateCantidadLinea(idx, event.target.value)
                                             }
                                         />
                                     </div>
@@ -297,11 +342,28 @@ export function AlquilerLineasEditor({
                                         Lista: {fmtQ(paquete.precio_alquiler)}/día
                                     </p>
                                 )}
-                                {producto && linea.precio_diario && (
+                                {producto && !esPaquete && (
                                     <p className="text-xs text-muted-foreground">
-                                        Lista: {fmtQ(producto.precio_alquiler_diario)}/día
-                                        {linea.precio_diario !== producto.precio_alquiler_diario &&
-                                            ` · Usando ${fmtQ(linea.precio_diario)}/día`}
+                                        Disponible para alquilar:{' '}
+                                        <strong>
+                                            {disponibleRestanteProducto(
+                                                producto.stock_disponible,
+                                                lineas,
+                                                producto.id,
+                                                0,
+                                                idx,
+                                            ).toLocaleString('es-GT')}
+                                        </strong>
+                                        {' '}
+                                        (stock total {producto.stock_alquiler})
+                                        {linea.precio_diario && (
+                                            <>
+                                                {' '}
+                                                · Lista: {fmtQ(producto.precio_alquiler_diario)}/día
+                                                {linea.precio_diario !== producto.precio_alquiler_diario &&
+                                                    ` · Usando ${fmtQ(linea.precio_diario)}/día`}
+                                            </>
+                                        )}
                                     </p>
                                 )}
                                 <InputError
@@ -322,6 +384,7 @@ export function AlquilerLineasEditor({
                 open={posOpen}
                 onOpenChange={setPosOpen}
                 productos={productosAlquiler}
+                lineasFormulario={lineas}
                 onConfirm={mergeLineasFromPos}
             />
         </>

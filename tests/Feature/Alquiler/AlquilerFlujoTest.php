@@ -8,6 +8,7 @@ use App\Models\Marca;
 use App\Models\Presentacion;
 use App\Models\Producto;
 use App\Models\User;
+use App\Services\VerificadorDisponibilidadAlquiler;
 
 test('invitados no pueden acceder a alquileres', function () {
     $this->get(route('alquileres.index'))->assertRedirect(route('login'));
@@ -174,6 +175,50 @@ test('no se puede crear alquiler si no hay stock suficiente', function () {
     ])->assertSessionHasErrors('lineas');
 
     expect(Alquiler::query()->count())->toBe(0);
+});
+
+test('disponibilidad actual resta unidades en alquileres creado y entregado', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $cliente = Cliente::factory()->create();
+    $producto = Producto::factory()->create([
+        'es_alquilable' => true,
+        'stock_alquiler' => '30',
+        'precio_alquiler_diario' => '250.00',
+        'activo' => true,
+    ]);
+
+    $inicio = now()->addDay()->toDateString();
+    $fin = now()->addDays(3)->toDateString();
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['producto_id' => $producto->id, 'cantidad' => 10],
+        ],
+    ])->assertRedirect();
+
+    $alquiler = Alquiler::query()->firstOrFail();
+    $this->post(route('alquileres.estado.update', $alquiler), [
+        'estado' => EstadoAlquiler::Entregado->value,
+    ])->assertRedirect();
+
+    $verificador = app(VerificadorDisponibilidadAlquiler::class);
+    expect($verificador->cantidadDisponibleActiva($producto->fresh()))->toBe('20.000');
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['producto_id' => $producto->id, 'cantidad' => 25],
+        ],
+    ])->assertSessionHasErrors('lineas');
+
+    expect(Alquiler::query()->count())->toBe(1);
 });
 
 test('al devolver un alquiler el stock queda disponible de nuevo', function () {

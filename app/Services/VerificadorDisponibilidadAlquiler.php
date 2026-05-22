@@ -12,6 +12,56 @@ use Illuminate\Database\Eloquent\Builder;
 
 class VerificadorDisponibilidadAlquiler
 {
+    /**
+     * Unidades fuera de inventario por alquileres activos (creado o entregado).
+     */
+    public function cantidadComprometidaActiva(
+        Producto $producto,
+        ?int $excluirAlquilerId = null,
+    ): string {
+        $sumaProducto = AlquilerLinea::query()
+            ->where('producto_id', $producto->id)
+            ->whereHas('alquiler', function (Builder $query) use ($excluirAlquilerId): void {
+                $query->whereIn('estado', EstadoAlquiler::valoresComprometenStock());
+                if ($excluirAlquilerId !== null) {
+                    $query->where('id', '!=', $excluirAlquilerId);
+                }
+            })
+            ->sum('cantidad');
+
+        $sumaPaquetes = AlquilerLinea::query()
+            ->whereNotNull('paquete_id')
+            ->whereHas('paquete.productos', fn (Builder $q) => $q->where('productos.id', $producto->id))
+            ->whereHas('alquiler', function (Builder $query) use ($excluirAlquilerId): void {
+                $query->whereIn('estado', EstadoAlquiler::valoresComprometenStock());
+                if ($excluirAlquilerId !== null) {
+                    $query->where('id', '!=', $excluirAlquilerId);
+                }
+            })
+            ->with('paquete.productos')
+            ->get()
+            ->sum(function (AlquilerLinea $linea) use ($producto): float {
+                $item = $linea->paquete?->productos->firstWhere('id', $producto->id);
+
+                if ($item === null) {
+                    return 0;
+                }
+
+                return (float) $linea->cantidad * (float) $item->pivot->cantidad;
+            });
+
+        return bcadd((string) $sumaProducto, (string) $sumaPaquetes, 3);
+    }
+
+    public function cantidadDisponibleActiva(
+        Producto $producto,
+        ?int $excluirAlquilerId = null,
+    ): string {
+        $comprometida = $this->cantidadComprometidaActiva($producto, $excluirAlquilerId);
+
+        return bcsub((string) $producto->stock_alquiler, $comprometida, 3);
+    }
+
     public function cantidadComprometida(
         Producto $producto,
         CarbonInterface $inicio,
@@ -93,12 +143,7 @@ class VerificadorDisponibilidadAlquiler
                 return false;
             }
 
-            $disponible = $this->cantidadDisponible(
-                $producto,
-                $alquiler->fecha_inicio_prevista,
-                $alquiler->fecha_fin_prevista,
-                $excluirAlquilerId,
-            );
+            $disponible = $this->cantidadDisponibleActiva($producto, $excluirAlquilerId);
 
             if (bccomp((string) $linea->cantidad, $disponible, 3) === 1) {
                 return false;
@@ -120,12 +165,7 @@ class VerificadorDisponibilidadAlquiler
 
         foreach ($paquete->productos as $producto) {
             $necesario = bcmul($cantidadPaquetes, (string) $producto->pivot->cantidad, 3);
-            $disponible = $this->cantidadDisponible(
-                $producto,
-                $alquiler->fecha_inicio_prevista,
-                $alquiler->fecha_fin_prevista,
-                $excluirAlquilerId,
-            );
+            $disponible = $this->cantidadDisponibleActiva($producto, $excluirAlquilerId);
 
             if (bccomp($necesario, $disponible, 3) === 1) {
                 return false;
@@ -133,5 +173,46 @@ class VerificadorDisponibilidadAlquiler
         }
 
         return true;
+    }
+
+    /**
+     * @param  array<int, array{producto_id?: int|string|null, paquete_id?: int|string|null, cantidad: float|int|string}>  $lineas
+     */
+    public function mensajeErrorStockLineas(array $lineas, ?int $excluirAlquilerId = null): ?string
+    {
+        foreach ($lineas as $row) {
+            if (! empty($row['paquete_id'])) {
+                $paquete = Paquete::query()->with('productos')->find((int) $row['paquete_id']);
+                if ($paquete === null) {
+                    continue;
+                }
+
+                foreach ($paquete->productos as $producto) {
+                    $necesario = bcmul((string) $row['cantidad'], (string) $producto->pivot->cantidad, 3);
+                    $disponible = $this->cantidadDisponibleActiva($producto, $excluirAlquilerId);
+                    if (bccomp($necesario, $disponible, 3) === 1) {
+                        return 'No hay suficiente «'.$producto->nombre.'» disponible (máx. '.$disponible.' unidad(es)).';
+                    }
+                }
+
+                continue;
+            }
+
+            if (empty($row['producto_id'])) {
+                continue;
+            }
+
+            $producto = Producto::query()->find((int) $row['producto_id']);
+            if ($producto === null) {
+                continue;
+            }
+
+            $disponible = $this->cantidadDisponibleActiva($producto, $excluirAlquilerId);
+            if (bccomp((string) $row['cantidad'], $disponible, 3) === 1) {
+                return 'No hay suficiente «'.$producto->nombre.'» disponible (máx. '.$disponible.' unidad(es)).';
+            }
+        }
+
+        return null;
     }
 }

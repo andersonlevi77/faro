@@ -62,11 +62,11 @@ class AlquilerController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(VerificadorDisponibilidadAlquiler $verificador): Response
     {
         $this->authorize('create', Alquiler::class);
 
-        return Inertia::render('alquileres/alquileres/crear', $this->opcionesFormularioAlquiler());
+        return Inertia::render('alquileres/alquileres/crear', $this->opcionesFormularioAlquiler($verificador));
     }
 
     public function store(StoreAlquilerRequest $request, VerificadorDisponibilidadAlquiler $verificador): RedirectResponse
@@ -92,10 +92,12 @@ class AlquilerController extends Controller
             $alquiler->save();
 
             $alquiler->load('lineas.producto', 'lineas.paquete.productos');
-            if (! $verificador->alquilerTieneStockSuficiente($alquiler)) {
-                throw ValidationException::withMessages([
-                    'lineas' => 'No hay stock de alquiler suficiente para las fechas y cantidades indicadas.',
-                ]);
+            $mensajeStock = $verificador->mensajeErrorStockLineas(
+                $request->validated('lineas'),
+                $alquiler->id,
+            );
+            if ($mensajeStock !== null) {
+                throw ValidationException::withMessages(['lineas' => $mensajeStock]);
             }
 
             return $alquiler;
@@ -183,7 +185,7 @@ class AlquilerController extends Controller
         ]);
     }
 
-    public function edit(Alquiler $alquiler): Response
+    public function edit(Alquiler $alquiler, VerificadorDisponibilidadAlquiler $verificador): Response
     {
         $this->authorize('update', $alquiler);
 
@@ -195,16 +197,21 @@ class AlquilerController extends Controller
 
         return Inertia::render('alquileres/alquileres/editar', [
             'alquiler' => $alquiler,
-            ...$this->opcionesFormularioAlquiler(),
+            ...$this->opcionesFormularioAlquiler($verificador, $alquiler),
         ]);
     }
 
-    public function update(UpdateAlquilerRequest $request, Alquiler $alquiler): RedirectResponse
+    public function update(UpdateAlquilerRequest $request, Alquiler $alquiler, VerificadorDisponibilidadAlquiler $verificador): RedirectResponse
     {
         $this->authorize('update', $alquiler);
 
         if ($alquiler->estadoEnum() !== EstadoAlquiler::Creado) {
             abort(403);
+        }
+
+        $mensajeStock = $verificador->mensajeErrorStockLineas($request->validated('lineas'), $alquiler->id);
+        if ($mensajeStock !== null) {
+            throw ValidationException::withMessages(['lineas' => $mensajeStock]);
         }
 
         DB::transaction(function () use ($request, $alquiler): void {
@@ -306,8 +313,12 @@ class AlquilerController extends Controller
      *     paquetesAlquiler: Collection<int, array<string, mixed>>
      * }
      */
-    private function opcionesFormularioAlquiler(): array
-    {
+    private function opcionesFormularioAlquiler(
+        VerificadorDisponibilidadAlquiler $verificador,
+        ?Alquiler $excluirAlquiler = null,
+    ): array {
+        $excluirAlquilerId = $excluirAlquiler?->id;
+
         return [
             'clientes' => Cliente::query()
                 ->orderBy('nombre')
@@ -332,6 +343,7 @@ class AlquilerController extends Controller
                     'nombre' => $producto->nombre,
                     'codigo' => $producto->codigo,
                     'stock_alquiler' => (string) $producto->stock_alquiler,
+                    'stock_disponible' => $verificador->cantidadDisponibleActiva($producto, $excluirAlquilerId),
                     'precio_alquiler_diario' => (string) $producto->precio_alquiler_diario,
                     'marca_nombre' => $producto->marca?->nombre,
                     'categoria_nombre' => $producto->categoria?->nombre,

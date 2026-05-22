@@ -16,8 +16,7 @@ interface Producto {
     codigo: string;
     precio_alquiler_diario: string | null;
     stock_alquiler: string;
-    tracking_mode: string;
-    es_alquilable: boolean;
+    disponibilidad_actual?: string;
     activo: boolean;
     categoria?: { id: number; nombre: string } | null;
     marca?: { id: number; nombre: string } | null;
@@ -110,7 +109,8 @@ export default function ProductosIndex({
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Nombre</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Categoría</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Precio / día</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Disponibilidad</th>
+                                        <th className="px-4 py-3 text-left font-medium text-foreground">Stock total</th>
+                                        <th className="px-4 py-3 text-left font-medium text-foreground">Disponible ahora</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Estado</th>
                                         <th className="w-[120px] px-4 py-3 text-left font-medium text-foreground">Acciones</th>
                                     </tr>
@@ -119,7 +119,7 @@ export default function ProductosIndex({
                                     {productos.data.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan={7}
+                                                colSpan={8}
                                                 className="px-4 py-10 text-center text-muted-foreground"
                                             >
                                                 No hay productos. Crea el primero desde «Nuevo producto».
@@ -139,6 +139,18 @@ export default function ProductosIndex({
                                                 </td>
                                                 <td className="px-4 py-3 tabular-nums text-muted-foreground">
                                                     {p.stock_alquiler}
+                                                </td>
+                                                <td className="px-4 py-3 tabular-nums">
+                                                    <span
+                                                        className={
+                                                            parseFloat(p.disponibilidad_actual ?? p.stock_alquiler) <=
+                                                            0
+                                                                ? 'font-medium text-destructive'
+                                                                : 'font-medium text-primary'
+                                                        }
+                                                    >
+                                                        {p.disponibilidad_actual ?? p.stock_alquiler}
+                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span
