@@ -18,10 +18,6 @@ class StoreProductoRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->prepareProductoCatalogIds();
-
-        $this->merge([
-            'es_alquilable' => $this->boolean('es_alquilable', true),
-        ]);
     }
 
     /**

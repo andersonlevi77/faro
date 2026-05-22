@@ -25,6 +25,12 @@ interface ProductoMini {
     codigo: string;
 }
 
+interface PaqueteMini {
+    id: number;
+    nombre: string;
+    codigo: string;
+}
+
 interface Linea {
     id: number;
     cantidad: string;
@@ -32,6 +38,7 @@ interface Linea {
     precio_diario: string;
     subtotal: string;
     producto?: ProductoMini | null;
+    paquete?: PaqueteMini | null;
 }
 
 interface Pago {
@@ -149,14 +156,11 @@ export default function AlquileresVer({
         }
         const opcion = transicionesPermitidas.find((t) => t.value === value);
         const label = opcion?.label ?? value;
-        const esCancelar = value === 'cancelado';
         confirm({
-            title: esCancelar ? '¿Cancelar este alquiler?' : `¿Marcar como ${label}?`,
-            description: esCancelar
-                ? 'El contrato quedará cancelado y las unidades reservadas volverán a estar disponibles.'
-                : `El alquiler ${alquiler.codigo} pasará al estado «${label}».`,
-            confirmLabel: esCancelar ? 'Cancelar alquiler' : `Marcar: ${label}`,
-            variant: esCancelar ? 'destructive' : 'success',
+            title: `¿Marcar como ${label}?`,
+            description: `El alquiler ${alquiler.codigo} pasará al estado «${label}».`,
+            confirmLabel: `Marcar: ${label}`,
+            variant: 'success',
             onConfirm: () => router.post(estado.update.url({ alquiler: alquiler.id }), { estado: value }),
         });
     };
@@ -218,7 +222,7 @@ export default function AlquileresVer({
                         <Button asChild>
                             <Link href={edit.url({ alquiler: alquiler.id })}>
                                 <Pencil className="mr-2 size-4" />
-                                Editar borrador
+                                Editar alquiler
                             </Link>
                         </Button>
                     )}
@@ -517,7 +521,7 @@ export default function AlquileresVer({
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border/40 bg-muted/30">
-                                        <th className="px-4 py-2 text-left font-medium">Producto</th>
+                                        <th className="px-4 py-2 text-left font-medium">Producto / Paquete</th>
                                         <th className="px-4 py-2 text-right font-medium">Cant.</th>
                                         <th className="px-4 py-2 text-right font-medium">Días</th>
                                         <th className="px-4 py-2 text-right font-medium">Precio/día</th>
@@ -528,7 +532,17 @@ export default function AlquileresVer({
                                     {alquiler.lineas.map((l) => (
                                         <tr key={l.id} className="border-b border-border/30">
                                             <td className="px-4 py-2">
-                                                {l.producto?.nombre} <span className="text-muted-foreground">({l.producto?.codigo})</span>
+                                                {l.paquete ? (
+                                                    <>
+                                                        <span className="font-medium">{l.paquete.nombre}</span>
+                                                        <span className="text-muted-foreground"> (paquete · {l.paquete.codigo})</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {l.producto?.nombre}{' '}
+                                                        <span className="text-muted-foreground">({l.producto?.codigo})</span>
+                                                    </>
+                                                )}
                                             </td>
                                             <td className="px-4 py-2 text-right tabular-nums">{l.cantidad}</td>
                                             <td className="px-4 py-2 text-right tabular-nums">{l.dias}</td>

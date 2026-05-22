@@ -9,7 +9,7 @@ test('comparte alquileres proximos y atrasados en inertia para usuarios con perm
     $user = User::factory()->create();
 
     Alquiler::factory()->create([
-        'estado' => EstadoAlquiler::EnUso,
+        'estado' => EstadoAlquiler::Entregado,
         'fecha_fin_prevista' => now()->addDays(3)->toDateString(),
     ]);
 
@@ -42,12 +42,12 @@ test('no comparte notificaciones de alquileres sin permiso', function () {
 
 test('el servicio agrupa proximos en ventana de dias y atrasados', function () {
     Alquiler::factory()->create([
-        'estado' => EstadoAlquiler::Reservado,
+        'estado' => EstadoAlquiler::Creado,
         'fecha_fin_prevista' => now()->addDays(5)->toDateString(),
     ]);
 
     Alquiler::factory()->create([
-        'estado' => EstadoAlquiler::EnUso,
+        'estado' => EstadoAlquiler::Entregado,
         'fecha_fin_prevista' => now()->addDays(20)->toDateString(),
     ]);
 

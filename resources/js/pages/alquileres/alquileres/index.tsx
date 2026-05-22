@@ -36,13 +36,9 @@ interface Paginated {
 }
 
 const ESTADO_COLOR: Record<string, string> = {
-    borrador: 'bg-muted text-muted-foreground',
-    reservado: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    creado: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
     entregado: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    en_uso: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
     devuelto: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    cerrado: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
-    cancelado: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
 export default function AlquileresIndex({
@@ -143,7 +139,7 @@ export default function AlquileresIndex({
                                     {alquileres.data.length === 0 ? (
                                         <tr>
                                             <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                                                No hay alquileres. Crea uno en borrador.
+                                                No hay alquileres. Crea uno nuevo.
                                             </td>
                                         </tr>
                                     ) : (
@@ -178,8 +174,8 @@ export default function AlquileresIndex({
                                                                     </Link>
                                                                 </Button>
                                                             </IconActionTooltip>
-                                                            {a.estado === 'borrador' && (
-                                                                <IconActionTooltip label="Editar borrador">
+                                                            {a.estado === 'creado' && (
+                                                                <IconActionTooltip label="Editar alquiler">
                                                                     <Button variant="ghost" size="icon" className="size-8" asChild>
                                                                         <Link href={edit.url({ alquiler: a.id })}>
                                                                             <Pencil className="size-4" />

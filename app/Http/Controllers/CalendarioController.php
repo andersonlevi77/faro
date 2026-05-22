@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\EstadoAlquiler;
 use App\Models\Alquiler;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -24,7 +23,6 @@ class CalendarioController extends Controller
 
         $alquileres = Alquiler::query()
             ->with(['cliente'])
-            ->whereNot('estado', EstadoAlquiler::Cancelado->value)
             ->where(function ($q) use ($inicioMes, $finMes): void {
                 $q->whereBetween('fecha_inicio_prevista', [$inicioMes->toDateString(), $finMes->toDateString()])
                     ->orWhereBetween('fecha_fin_prevista', [$inicioMes->toDateString(), $finMes->toDateString()])

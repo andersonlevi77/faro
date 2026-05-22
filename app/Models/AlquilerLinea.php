@@ -21,6 +21,7 @@ class AlquilerLinea extends Model
     protected $fillable = [
         'alquiler_id',
         'producto_id',
+        'paquete_id',
         'cantidad',
         'dias',
         'precio_diario',
@@ -50,9 +51,19 @@ class AlquilerLinea extends Model
         return $this->belongsTo(Producto::class, 'producto_id');
     }
 
+    public function paquete(): BelongsTo
+    {
+        return $this->belongsTo(Paquete::class, 'paquete_id');
+    }
+
     /** @return BelongsToMany<ProductoUnidad> */
     public function unidades(): BelongsToMany
     {
         return $this->belongsToMany(ProductoUnidad::class, 'alquiler_linea_unidades', 'alquiler_linea_id', 'producto_unidad_id');
+    }
+
+    public function esPaquete(): bool
+    {
+        return $this->paquete_id !== null;
     }
 }

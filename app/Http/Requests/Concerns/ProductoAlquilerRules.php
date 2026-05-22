@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Concerns;
 
 use App\Enums\TrackingMode;
-use Illuminate\Validation\Rule;
 
 trait ProductoAlquilerRules
 {
@@ -25,21 +24,8 @@ trait ProductoAlquilerRules
             'presentacion_id' => ['nullable', 'exists:presentaciones,id'],
             'stock_minimo' => ['nullable', 'integer', 'min:0'],
             'activo' => ['boolean'],
-            'es_alquilable' => ['boolean'],
-            'tracking_mode' => ['nullable', 'string', Rule::enum(TrackingMode::class)],
-            'precio_alquiler_diario' => [
-                Rule::requiredIf(fn () => $this->boolean('es_alquilable')),
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-            'deposito_unitario' => ['nullable', 'numeric', 'min:0'],
-            'stock_alquiler' => [
-                Rule::requiredIf(fn () => $this->boolean('es_alquilable') && $this->input('tracking_mode', TrackingMode::Bulk->value) === TrackingMode::Bulk->value),
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
+            'precio_alquiler_diario' => ['required', 'numeric', 'min:0'],
+            'stock_alquiler' => ['required', 'numeric', 'min:0'],
         ];
     }
 
@@ -50,5 +36,17 @@ trait ProductoAlquilerRules
                 $this->merge([$key => null]);
             }
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function productoAlquilerDefaults(): array
+    {
+        return [
+            'es_alquilable' => true,
+            'tracking_mode' => TrackingMode::Bulk->value,
+            'deposito_unitario' => '0',
+        ];
     }
 }

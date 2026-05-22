@@ -5,6 +5,7 @@ import {
     ClipboardList,
     LayoutGrid,
     LogOut,
+    Boxes,
     Package,
     Shield,
     UserCog,
@@ -27,6 +28,7 @@ import { calendario, dashboard, reportes } from '@/routes';
 import { index as alquileresIndex } from '@/routes/alquileres';
 import { index as clientesIndex } from '@/routes/clientes';
 import { index as mantenimientosIndex } from '@/routes/mantenimientos';
+import { index as paquetesIndex } from '@/routes/paquetes';
 import { index as productosIndex } from '@/routes/productos';
 import { logout } from '@/routes';
 import { index as rolesIndex } from '@/routes/roles';
@@ -72,6 +74,15 @@ export function AppSidebar() {
                       title: 'Productos',
                       href: productosIndex.url(),
                       icon: Package,
+                  } satisfies NavItem,
+              ]
+            : []),
+        ...(can(permissions, 'paquetes.viewAny')
+            ? [
+                  {
+                      title: 'Paquetes',
+                      href: paquetesIndex.url(),
+                      icon: Boxes,
                   } satisfies NavItem,
               ]
             : []),

@@ -21,7 +21,7 @@ function crearAlquilerConLinea(): Alquiler
 
     $alquiler = Alquiler::factory()->create([
         'cliente_id' => $cliente->id,
-        'estado' => EstadoAlquiler::EnUso->value,
+        'estado' => EstadoAlquiler::Entregado->value,
         'deposito_monto' => '100.00',
         'total' => '200.00',
     ]);
@@ -111,7 +111,7 @@ test('se puede registrar devolucion con daños', function () {
     $this->actingAs($user);
 
     $alquiler = crearAlquilerConLinea();
-    $alquiler->update(['estado' => EstadoAlquiler::EnUso->value]);
+    $alquiler->update(['estado' => EstadoAlquiler::Entregado->value]);
 
     $this->post(route('alquileres.estado.update', $alquiler), [
         'estado' => EstadoAlquiler::Devuelto->value,

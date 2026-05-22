@@ -30,12 +30,13 @@ function precioDiarioLinea(
     if (manual !== '' && !Number.isNaN(Number.parseFloat(manual))) {
         return Math.max(0, Number.parseFloat(manual));
     }
-    if (linea.producto_id === '') {
-        return 0;
-    }
-    const lista = precioListaPorProductoId.get(Number(linea.producto_id));
+    if (linea.producto_id !== '') {
+        const lista = precioListaPorProductoId.get(Number(linea.producto_id));
 
-    return lista !== undefined && lista !== '' ? Math.max(0, Number.parseFloat(lista) || 0) : 0;
+        return lista !== undefined && lista !== '' ? Math.max(0, Number.parseFloat(lista) || 0) : 0;
+    }
+
+    return 0;
 }
 
 /**

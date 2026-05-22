@@ -15,11 +15,6 @@ import AppLayout from '@/layouts/app-layout';
 import { edit, index, update } from '@/routes/productos';
 import type { BreadcrumbItem } from '@/types';
 
-interface TrackingModeOption {
-    value: string;
-    label: string;
-}
-
 interface Producto {
     id: number;
     nombre: string;
@@ -42,13 +37,11 @@ export default function ProductosEditar({
     categorias,
     marcas,
     presentaciones,
-    trackingModes,
 }: {
     producto: Producto;
     categorias: CatalogOption[];
     marcas: CatalogOption[];
     presentaciones: CatalogOption[];
-    trackingModes: TrackingModeOption[];
 }) {
     const [categoriasOptions, setCategoriasOptions] = useState(categorias);
     const [marcasOptions, setMarcasOptions] = useState(marcas);
@@ -69,11 +62,8 @@ export default function ProductosEditar({
         presentacion_id: producto.presentacion_id ?? ('' as number | ''),
         stock_minimo: String(producto.stock_minimo ?? ''),
         activo: producto.activo,
-        es_alquilable: producto.es_alquilable,
-        tracking_mode: producto.tracking_mode ?? 'bulk',
         stock_alquiler: producto.stock_alquiler ?? '',
         precio_alquiler_diario: producto.precio_alquiler_diario ?? '',
-        deposito_unitario: producto.deposito_unitario ?? '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -147,12 +137,7 @@ export default function ProductosEditar({
                         <Label htmlFor="activo">Producto activo</Label>
                     </div>
 
-                    <ProductoAlquilerFields
-                        data={data}
-                        setData={setData}
-                        errors={errors}
-                        trackingModes={trackingModes}
-                    />
+                    <ProductoAlquilerFields data={data} setData={setData} errors={errors} />
 
 
                     <div className="faro-form-actions">

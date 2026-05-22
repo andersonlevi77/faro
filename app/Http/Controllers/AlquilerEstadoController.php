@@ -26,23 +26,17 @@ class AlquilerEstadoController extends Controller
             );
         }
 
-        if ($nuevo === EstadoAlquiler::Reservado) {
+        if ($nuevo === EstadoAlquiler::Entregado) {
             $alquiler->load('lineas');
             if ($alquiler->lineas->isEmpty()) {
-                return back()->with('error', 'Agrega al menos una línea antes de reservar.');
+                return back()->with('error', 'Agrega al menos una línea antes de marcar como entregado.');
             }
             if (! $verificador->alquilerTieneStockSuficiente($alquiler)) {
                 return back()->with('error', 'No hay stock de alquiler suficiente para las fechas y cantidades indicadas.');
             }
         }
 
-        DB::transaction(function () use ($request, $alquiler, $actual, $nuevo, $verificador): void {
-            if ($nuevo === EstadoAlquiler::Reservado) {
-                $verificador->asignarUnidades($alquiler);
-            }
-
-            $verificador->actualizarEstadoUnidades($alquiler, $nuevo);
-
+        DB::transaction(function () use ($request, $alquiler, $actual, $nuevo): void {
             $alquiler->estado = $nuevo;
 
             if ($nuevo === EstadoAlquiler::Entregado && $alquiler->fecha_entrega_at === null) {

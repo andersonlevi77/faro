@@ -214,28 +214,28 @@ class DemoSeeder extends Seeder
 
         // [estado, inicio (relativo a hoy), días, fracción pagada (0–1)]
         $escenarios = [
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(10), 5,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(9),  7,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(8),  3,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(7),  10, 1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(6),  4,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(5),  6,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(4),  8,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(3),  5,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(2),  7,  1.0],
-            [EstadoAlquiler::Cerrado,   Carbon::now()->subMonths(1),  4,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(10), 5,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(9),  7,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(8),  3,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(7),  10, 1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(6),  4,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(5),  6,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(4),  8,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(3),  5,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(2),  7,  1.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(1),  4,  1.0],
             [EstadoAlquiler::Devuelto,  Carbon::now()->subDays(20),   6,  0.8],
             [EstadoAlquiler::Devuelto,  Carbon::now()->subDays(12),   3,  1.0],
-            [EstadoAlquiler::EnUso,     Carbon::now()->subDays(5),    7,  0.5],
-            [EstadoAlquiler::EnUso,     Carbon::now()->subDays(3),    10, 0.3],
-            [EstadoAlquiler::EnUso,     Carbon::now()->subDays(1),    5,  0.0],
+            [EstadoAlquiler::Entregado, Carbon::now()->subDays(5),    7,  0.5],
+            [EstadoAlquiler::Entregado, Carbon::now()->subDays(3),    10, 0.3],
+            [EstadoAlquiler::Entregado, Carbon::now()->subDays(1),    5,  0.0],
             [EstadoAlquiler::Entregado, Carbon::now()->subDays(2),    8,  1.0],
             [EstadoAlquiler::Entregado, Carbon::now(),                6,  0.5],
-            [EstadoAlquiler::Reservado, Carbon::now()->addDays(3),    5,  1.0],
-            [EstadoAlquiler::Reservado, Carbon::now()->addDays(7),    10, 0.5],
-            [EstadoAlquiler::Borrador,  Carbon::now()->addDays(14),   4,  0.0],
-            [EstadoAlquiler::Cancelado, Carbon::now()->subMonths(3),  3,  0.0],
-            [EstadoAlquiler::Cancelado, Carbon::now()->subMonths(1),  5,  0.5],
+            [EstadoAlquiler::Creado,    Carbon::now()->addDays(3),    5,  1.0],
+            [EstadoAlquiler::Creado,    Carbon::now()->addDays(7),    10, 0.5],
+            [EstadoAlquiler::Creado,    Carbon::now()->addDays(14),   4,  0.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(3),  3,  0.0],
+            [EstadoAlquiler::Devuelto,  Carbon::now()->subMonths(1),  5,  0.5],
         ];
 
         $alquilables = array_values(array_filter($productos, fn (Producto $p) => $p->es_alquilable));
@@ -282,7 +282,7 @@ class DemoSeeder extends Seeder
                 AlquilerLinea::create(array_merge($lineaData, ['alquiler_id' => $alquiler->id]));
             }
 
-            if (in_array($estado, [EstadoAlquiler::Devuelto, EstadoAlquiler::Cerrado], true)) {
+            if ($estado === EstadoAlquiler::Devuelto) {
                 $alquiler->update([
                     'fecha_devolucion_at' => $fin->copy()->addDays(rand(-1, 2))->toDateString(),
                     'deposito_devuelto' => (string) $deposito,
@@ -316,7 +316,7 @@ class DemoSeeder extends Seeder
                     ]);
                 }
 
-                if ($estado === EstadoAlquiler::Cerrado) {
+                if ($estado === EstadoAlquiler::Devuelto && $fraccionPago >= 1.0) {
                     Pago::create([
                         'alquiler_id' => $alquiler->id,
                         'tipo' => TipoPago::DevolucionDeposito->value,

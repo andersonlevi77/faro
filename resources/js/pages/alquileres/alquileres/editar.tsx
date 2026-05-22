@@ -11,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import {
+    type PaqueteAlquilerSource,
+} from '@/components/alquiler-lineas-editor';
+import {
     clienteComboboxOptions,
     type ClienteComboboxSource,
     type ProductoAlquilerComboboxSource,
@@ -22,7 +25,8 @@ import type { BreadcrumbItem } from '@/types';
 
 interface Linea {
     id: number;
-    producto_id: number;
+    producto_id: number | null;
+    paquete_id: number | null;
     cantidad: string;
     precio_diario: string;
 }
@@ -42,10 +46,12 @@ export default function AlquileresEditar({
     alquiler,
     clientes,
     productosAlquiler,
+    paquetesAlquiler = [],
 }: {
     alquiler: Alquiler;
     clientes: ClienteComboboxSource[];
     productosAlquiler: ProductoAlquilerComboboxSource[];
+    paquetesAlquiler?: PaqueteAlquilerSource[];
 }) {
     const clienteOptions = useMemo(() => clienteComboboxOptions(clientes), [clientes]);
     const breadcrumbs: BreadcrumbItem[] = [
@@ -62,7 +68,8 @@ export default function AlquileresEditar({
         deposito_monto: alquiler.deposito_monto,
         notas: alquiler.notas ?? '',
         lineas: alquiler.lineas.map((l) => ({
-            producto_id: l.producto_id,
+            producto_id: l.producto_id ?? '',
+            paquete_id: l.paquete_id ?? '',
             cantidad: l.cantidad,
             precio_diario: l.precio_diario,
         })),
@@ -92,9 +99,9 @@ export default function AlquileresEditar({
         [data.fecha_inicio_prevista, data.fecha_fin_prevista, data.lineas, productoPrecioMap],
     );
 
-    const eliminarBorrador = () => {
+    const eliminarAlquiler = () => {
         confirm({
-            title: '¿Eliminar este borrador?',
+            title: '¿Eliminar este alquiler?',
             description: `Se eliminará el alquiler ${alquiler.codigo} y todas sus líneas. Esta acción no se puede deshacer.`,
             confirmLabel: 'Eliminar alquiler',
             variant: 'destructive',
@@ -193,12 +200,13 @@ export default function AlquileresEditar({
                         lineas={data.lineas}
                         onLineasChange={(lineas) => setData('lineas', lineas)}
                         productosAlquiler={productosAlquiler}
+                        paquetesAlquiler={paquetesAlquiler}
                         errors={errors as Record<string, string>}
                         onConfirmRemove={(_idx, onConfirm) =>
                             confirm({
                                 title: '¿Quitar esta línea?',
                                 description:
-                                    'El producto se eliminará del borrador. Debes guardar para aplicar el cambio.',
+                                    'La línea se eliminará. Debes guardar para aplicar el cambio.',
                                 confirmLabel: 'Quitar línea',
                                 variant: 'destructive',
                                 onConfirm,
@@ -236,8 +244,8 @@ export default function AlquileresEditar({
                         <Button type="button" variant="outline" asChild>
                             <Link href={index.url()}>Volver al listado</Link>
                         </Button>
-                        <Button type="button" variant="destructive" onClick={eliminarBorrador}>
-                            Eliminar borrador
+                        <Button type="button" variant="destructive" onClick={eliminarAlquiler}>
+                            Eliminar alquiler
                         </Button>
                     </div>
                 </form>

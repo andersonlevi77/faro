@@ -12,7 +12,9 @@ use App\Models\AlquilerEstadoHistorial;
 use App\Models\AlquilerLinea;
 use App\Models\Cliente;
 use App\Models\Pago;
+use App\Models\Paquete;
 use App\Models\Producto;
+use App\Services\VerificadorDisponibilidadAlquiler;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -67,18 +69,18 @@ class AlquilerController extends Controller
         return Inertia::render('alquileres/alquileres/crear', $this->opcionesFormularioAlquiler());
     }
 
-    public function store(StoreAlquilerRequest $request): RedirectResponse
+    public function store(StoreAlquilerRequest $request, VerificadorDisponibilidadAlquiler $verificador): RedirectResponse
     {
         $this->authorize('create', Alquiler::class);
 
-        $alquiler = DB::transaction(function () use ($request): Alquiler {
+        $alquiler = DB::transaction(function () use ($request, $verificador): Alquiler {
             $inicio = $request->date('fecha_inicio_prevista');
             $fin = $request->date('fecha_fin_prevista');
 
             $alquiler = Alquiler::create([
                 'cliente_id' => (int) $request->validated('cliente_id'),
                 'user_id' => $request->user()->id,
-                'estado' => EstadoAlquiler::Borrador,
+                'estado' => EstadoAlquiler::Creado,
                 'fecha_inicio_prevista' => $inicio,
                 'fecha_fin_prevista' => $fin,
                 'deposito_monto' => $request->filled('deposito_monto') ? $request->string('deposito_monto') : '0',
@@ -89,10 +91,17 @@ class AlquilerController extends Controller
             $alquiler->recalcularTotalDesdeLineas();
             $alquiler->save();
 
+            $alquiler->load('lineas.producto', 'lineas.paquete.productos');
+            if (! $verificador->alquilerTieneStockSuficiente($alquiler)) {
+                throw ValidationException::withMessages([
+                    'lineas' => 'No hay stock de alquiler suficiente para las fechas y cantidades indicadas.',
+                ]);
+            }
+
             return $alquiler;
         });
 
-        return to_route('alquileres.show', $alquiler)->with('success', 'Alquiler creado como borrador.');
+        return to_route('alquileres.show', $alquiler)->with('success', 'Alquiler creado.');
     }
 
     public function show(Alquiler $alquiler): Response
@@ -104,6 +113,7 @@ class AlquilerController extends Controller
             'usuario',
             'lineas.producto.categoria',
             'lineas.producto.marca',
+            'lineas.paquete.productos',
             'pagos.registradoPor',
             'historialEstados.usuario:id,name',
         ]);
@@ -157,7 +167,7 @@ class AlquilerController extends Controller
             'flujoPrincipal' => $flujoPrincipal,
             'historialEstados' => $historialEstados,
             'transicionesPermitidas' => $transiciones,
-            'puedeEditar' => $alquiler->estadoEnum() === EstadoAlquiler::Borrador
+            'puedeEditar' => $alquiler->estadoEnum() === EstadoAlquiler::Creado
                 && ($user?->can('update', $alquiler) ?? false),
             'puedeCambiarEstado' => $user?->can('cambiarEstado', $alquiler) ?? false,
             'puedeCobrar' => $user?->can('create', Pago::class) ?? false,
@@ -177,8 +187,8 @@ class AlquilerController extends Controller
     {
         $this->authorize('update', $alquiler);
 
-        if ($alquiler->estadoEnum() !== EstadoAlquiler::Borrador) {
-            abort(403, 'Solo se pueden editar alquileres en borrador.');
+        if ($alquiler->estadoEnum() !== EstadoAlquiler::Creado) {
+            abort(403, 'Solo se pueden editar alquileres en estado creado.');
         }
 
         $alquiler->load('lineas.producto');
@@ -193,7 +203,7 @@ class AlquilerController extends Controller
     {
         $this->authorize('update', $alquiler);
 
-        if ($alquiler->estadoEnum() !== EstadoAlquiler::Borrador) {
+        if ($alquiler->estadoEnum() !== EstadoAlquiler::Creado) {
             abort(403);
         }
 
@@ -218,8 +228,8 @@ class AlquilerController extends Controller
     {
         $this->authorize('delete', $alquiler);
 
-        if (! in_array($alquiler->estadoEnum(), [EstadoAlquiler::Borrador, EstadoAlquiler::Cancelado], true)) {
-            return back()->with('error', 'Solo se pueden eliminar borradores o alquileres cancelados.');
+        if ($alquiler->estadoEnum() !== EstadoAlquiler::Creado) {
+            return back()->with('error', 'Solo se pueden eliminar alquileres en estado creado.');
         }
 
         $alquiler->delete();
@@ -228,7 +238,7 @@ class AlquilerController extends Controller
     }
 
     /**
-     * @param  array<int, array{producto_id: int|string, cantidad: float|int|string}>  $lineas
+     * @param  array<int, array{producto_id?: int|string|null, paquete_id?: int|string|null, cantidad: float|int|string, precio_diario?: float|int|string|null}>  $lineas
      */
     private function reemplazarLineas(Alquiler $alquiler, array $lineas): void
     {
@@ -239,6 +249,33 @@ class AlquilerController extends Controller
         $dias = Alquiler::calcularDias($inicio, $fin);
 
         foreach ($lineas as $row) {
+            $cant = (string) $row['cantidad'];
+
+            if (! empty($row['paquete_id'])) {
+                $paquete = Paquete::query()->with('productos')->findOrFail((int) $row['paquete_id']);
+                if (! $paquete->activo || $paquete->productos->isEmpty()) {
+                    throw ValidationException::withMessages([
+                        'lineas' => 'El paquete «'.$paquete->nombre.'» no está disponible.',
+                    ]);
+                }
+
+                $precio = isset($row['precio_diario']) && $row['precio_diario'] !== ''
+                    ? (string) $row['precio_diario']
+                    : (string) $paquete->precio_alquiler;
+                $subtotal = bcmul(bcmul($precio, (string) $dias, 2), $cant, 2);
+
+                AlquilerLinea::create([
+                    'alquiler_id' => $alquiler->id,
+                    'paquete_id' => $paquete->id,
+                    'cantidad' => $cant,
+                    'dias' => $dias,
+                    'precio_diario' => $precio,
+                    'subtotal' => $subtotal,
+                ]);
+
+                continue;
+            }
+
             $producto = Producto::query()->findOrFail((int) $row['producto_id']);
             if (! $producto->es_alquilable || $producto->precio_alquiler_diario === null) {
                 throw ValidationException::withMessages([
@@ -249,7 +286,6 @@ class AlquilerController extends Controller
             $precio = isset($row['precio_diario']) && $row['precio_diario'] !== ''
                 ? (string) $row['precio_diario']
                 : (string) $producto->precio_alquiler_diario;
-            $cant = (string) $row['cantidad'];
             $subtotal = bcmul(bcmul($precio, (string) $dias, 2), $cant, 2);
 
             AlquilerLinea::create([
@@ -264,7 +300,11 @@ class AlquilerController extends Controller
     }
 
     /**
-     * @return array{clientes: Collection<int, array<string, mixed>>, productosAlquiler: Collection<int, array<string, mixed>>}
+     * @return array{
+     *     clientes: Collection<int, array<string, mixed>>,
+     *     productosAlquiler: Collection<int, array<string, mixed>>,
+     *     paquetesAlquiler: Collection<int, array<string, mixed>>
+     * }
      */
     private function opcionesFormularioAlquiler(): array
     {
@@ -295,6 +335,23 @@ class AlquilerController extends Controller
                     'precio_alquiler_diario' => (string) $producto->precio_alquiler_diario,
                     'marca_nombre' => $producto->marca?->nombre,
                     'categoria_nombre' => $producto->categoria?->nombre,
+                ])
+                ->values(),
+            'paquetesAlquiler' => Paquete::query()
+                ->where('activo', true)
+                ->with('productos:id,nombre,codigo')
+                ->orderBy('nombre')
+                ->get()
+                ->map(fn (Paquete $paquete) => [
+                    'id' => $paquete->id,
+                    'nombre' => $paquete->nombre,
+                    'codigo' => $paquete->codigo,
+                    'precio_alquiler' => (string) $paquete->precio_alquiler,
+                    'productos' => $paquete->productos->map(fn (Producto $p) => [
+                        'nombre' => $p->nombre,
+                        'codigo' => $p->codigo,
+                        'cantidad' => (string) $p->pivot->cantidad,
+                    ])->values(),
                 ])
                 ->values(),
         ];

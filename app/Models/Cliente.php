@@ -67,12 +67,8 @@ class Cliente extends Model
                 ? $a->estado
                 : EstadoAlquiler::from($a->estado);
 
-            if ($estado === EstadoAlquiler::Cerrado) {
+            if ($estado === EstadoAlquiler::Devuelto) {
                 $score += 5;
-            }
-
-            if ($estado === EstadoAlquiler::Cancelado) {
-                $score -= 10;
             }
 
             // Devuelto a tiempo (antes o el mismo día del fin previsto)

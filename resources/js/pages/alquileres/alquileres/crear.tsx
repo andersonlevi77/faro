@@ -11,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import {
+    type PaqueteAlquilerSource,
+} from '@/components/alquiler-lineas-editor';
+import {
     clienteComboboxOptions,
     type ClienteComboboxSource,
     type ProductoAlquilerComboboxSource,
@@ -24,9 +27,11 @@ import type { BreadcrumbItem } from '@/types';
 export default function AlquileresCrear({
     clientes,
     productosAlquiler,
+    paquetesAlquiler = [],
 }: {
     clientes: ClienteComboboxSource[];
     productosAlquiler: ProductoAlquilerComboboxSource[];
+    paquetesAlquiler?: PaqueteAlquilerSource[];
 }) {
     const clienteOptions = useMemo(() => clienteComboboxOptions(clientes), [clientes]);
     const breadcrumbs: BreadcrumbItem[] = [
@@ -87,7 +92,7 @@ export default function AlquileresCrear({
                             </Link>
                         </Button>
                     </IconActionTooltip>
-                    <h1 className="text-xl font-semibold tracking-tight text-foreground">Nuevo alquiler (borrador)</h1>
+                    <h1 className="text-xl font-semibold tracking-tight text-foreground">Nuevo alquiler</h1>
                 </div>
                 <form onSubmit={handleSubmit} className="faro-form-card">
                     <div className="faro-form-grid sm:grid-cols-3">
@@ -157,11 +162,12 @@ export default function AlquileresCrear({
                         lineas={data.lineas}
                         onLineasChange={(lineas) => setData('lineas', lineas)}
                         productosAlquiler={productosAlquiler}
+                        paquetesAlquiler={paquetesAlquiler}
                         errors={errors as Record<string, string>}
                         onConfirmRemove={(_idx, onConfirm) =>
                             confirm({
                                 title: '¿Quitar esta línea?',
-                                description: 'El producto se eliminará del borrador antes de guardar.',
+                                description: 'La línea se eliminará antes de guardar.',
                                 confirmLabel: 'Quitar línea',
                                 variant: 'destructive',
                                 onConfirm,
@@ -194,7 +200,7 @@ export default function AlquileresCrear({
 
                     <div className="faro-form-actions">
                         <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">
-                            Guardar borrador
+                            Crear alquiler
                         </Button>
                         <Button type="button" variant="outline" asChild>
                             <Link href={index.url()}>Cancelar</Link>

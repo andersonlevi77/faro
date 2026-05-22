@@ -135,16 +135,10 @@ export default function ProductosIndex({
                                                 <td className="px-4 py-3 font-medium text-foreground">{p.nombre}</td>
                                                 <td className="px-4 py-3 text-muted-foreground">{p.categoria?.nombre ?? '—'}</td>
                                                 <td className="px-4 py-3 tabular-nums text-foreground">
-                                                    {p.es_alquilable && p.precio_alquiler_diario
-                                                        ? fmtQ(p.precio_alquiler_diario)
-                                                        : '—'}
+                                                    {p.precio_alquiler_diario ? fmtQ(p.precio_alquiler_diario) : '—'}
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {!p.es_alquilable
-                                                        ? 'No alquilable'
-                                                        : p.tracking_mode === 'individual'
-                                                          ? 'Por unidad'
-                                                          : p.stock_alquiler}
+                                                <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                                                    {p.stock_alquiler}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span

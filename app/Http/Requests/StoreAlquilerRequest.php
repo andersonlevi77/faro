@@ -26,7 +26,8 @@ class StoreAlquilerRequest extends FormRequest
             'deposito_monto' => ['nullable', 'numeric', 'min:0'],
             'notas' => ['nullable', 'string', 'max:5000'],
             'lineas' => ['required', 'array', 'min:1'],
-            'lineas.*.producto_id' => ['required', 'exists:productos,id'],
+            'lineas.*.producto_id' => ['nullable', 'exists:productos,id'],
+            'lineas.*.paquete_id' => ['nullable', 'exists:paquetes,id'],
             'lineas.*.cantidad' => ['required', 'numeric', 'min:0.001'],
             'lineas.*.precio_diario' => ['nullable', 'numeric', 'min:0'],
         ];
@@ -35,16 +36,16 @@ class StoreAlquilerRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if ($validator->errors()->isNotEmpty()) {
-                return;
-            }
-            $inicio = $this->date('fecha_inicio_prevista');
-            $fin = $this->date('fecha_fin_prevista');
-            if ($inicio === null || $fin === null) {
-                return;
-            }
-            if ($fin->lt($inicio)) {
-                $validator->errors()->add('fecha_fin_prevista', 'La fecha de fin debe ser posterior o igual al inicio.');
+            foreach ($this->input('lineas', []) as $index => $linea) {
+                $tieneProducto = ! empty($linea['producto_id']);
+                $tienePaquete = ! empty($linea['paquete_id']);
+
+                if ($tieneProducto === $tienePaquete) {
+                    $validator->errors()->add(
+                        "lineas.{$index}",
+                        'Cada línea debe ser un producto o un paquete, no ambos ni ninguno.',
+                    );
+                }
             }
         });
     }

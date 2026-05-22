@@ -68,7 +68,7 @@ class Alquiler extends Model
                 $alquiler->codigo = static::reservarSiguienteCodigo();
             }
             if (empty($alquiler->estado)) {
-                $alquiler->estado = EstadoAlquiler::Borrador;
+                $alquiler->estado = EstadoAlquiler::Creado;
             }
         });
 

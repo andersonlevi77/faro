@@ -3,22 +3,15 @@
 namespace App\Services;
 
 use App\Enums\EstadoAlquiler;
-use App\Enums\EstadoUnidad;
-use App\Enums\TrackingMode;
 use App\Models\Alquiler;
 use App\Models\AlquilerLinea;
+use App\Models\Paquete;
 use App\Models\Producto;
-use App\Models\ProductoUnidad;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Validation\ValidationException;
 
 class VerificadorDisponibilidadAlquiler
 {
-    // -------------------------------------------------------------------------
-    // Bulk mode
-    // -------------------------------------------------------------------------
-
     public function cantidadComprometida(
         Producto $producto,
         CarbonInterface $inicio,
@@ -28,7 +21,7 @@ class VerificadorDisponibilidadAlquiler
         $inicioStr = $inicio->toDateString();
         $finStr = $fin->toDateString();
 
-        $suma = AlquilerLinea::query()
+        $sumaProducto = AlquilerLinea::query()
             ->where('producto_id', $producto->id)
             ->whereHas('alquiler', function (Builder $query) use ($inicioStr, $finStr, $excluirAlquilerId): void {
                 $query->whereIn('estado', EstadoAlquiler::valoresComprometenStock())
@@ -40,7 +33,30 @@ class VerificadorDisponibilidadAlquiler
             })
             ->sum('cantidad');
 
-        return (string) $suma;
+        $sumaPaquetes = AlquilerLinea::query()
+            ->whereNotNull('paquete_id')
+            ->whereHas('paquete.productos', fn (Builder $q) => $q->where('productos.id', $producto->id))
+            ->whereHas('alquiler', function (Builder $query) use ($inicioStr, $finStr, $excluirAlquilerId): void {
+                $query->whereIn('estado', EstadoAlquiler::valoresComprometenStock())
+                    ->whereDate('fecha_inicio_prevista', '<=', $finStr)
+                    ->whereDate('fecha_fin_prevista', '>=', $inicioStr);
+                if ($excluirAlquilerId !== null) {
+                    $query->where('id', '!=', $excluirAlquilerId);
+                }
+            })
+            ->with('paquete.productos')
+            ->get()
+            ->sum(function (AlquilerLinea $linea) use ($producto): float {
+                $item = $linea->paquete?->productos->firstWhere('id', $producto->id);
+
+                if ($item === null) {
+                    return 0;
+                }
+
+                return (float) $linea->cantidad * (float) $item->pivot->cantidad;
+            });
+
+        return bcadd((string) $sumaProducto, (string) $sumaPaquetes, 3);
     }
 
     public function cantidadDisponible(
@@ -55,115 +71,67 @@ class VerificadorDisponibilidadAlquiler
         return bcsub($stock, $comprometida, 3);
     }
 
-    // -------------------------------------------------------------------------
-    // Individual mode
-    // -------------------------------------------------------------------------
-
-    public function unidadesDisponiblesCount(Producto $producto): int
-    {
-        return $producto->unidades()->where('estado', EstadoUnidad::Disponible->value)->count();
-    }
-
-    // -------------------------------------------------------------------------
-    // Stock check (ambos modos)
-    // -------------------------------------------------------------------------
-
     public function alquilerTieneStockSuficiente(Alquiler $alquiler): bool
     {
-        $alquiler->loadMissing('lineas.producto');
+        $alquiler->loadMissing(['lineas.producto', 'lineas.paquete.productos']);
 
         $excluirAlquilerId = in_array($alquiler->estadoEnum(), EstadoAlquiler::activos(), true)
             ? $alquiler->id
             : null;
 
         foreach ($alquiler->lineas as $linea) {
+            if ($linea->paquete_id !== null) {
+                if (! $this->paqueteTieneStock($linea->paquete, (string) $linea->cantidad, $alquiler, $excluirAlquilerId)) {
+                    return false;
+                }
+
+                continue;
+            }
+
             $producto = $linea->producto;
-            if (! $producto->es_alquilable) {
+            if ($producto === null || ! $producto->es_alquilable) {
                 return false;
             }
 
-            if ($producto->tracking_mode === TrackingMode::Individual) {
-                $disponibles = $this->unidadesDisponiblesCount($producto);
-                if ((int) $linea->cantidad > $disponibles) {
-                    return false;
-                }
-            } else {
-                $disponible = $this->cantidadDisponible(
-                    $producto,
-                    $alquiler->fecha_inicio_prevista,
-                    $alquiler->fecha_fin_prevista,
-                    $excluirAlquilerId,
-                );
-                if (bccomp((string) $linea->cantidad, $disponible, 3) === 1) {
-                    return false;
-                }
+            $disponible = $this->cantidadDisponible(
+                $producto,
+                $alquiler->fecha_inicio_prevista,
+                $alquiler->fecha_fin_prevista,
+                $excluirAlquilerId,
+            );
+
+            if (bccomp((string) $linea->cantidad, $disponible, 3) === 1) {
+                return false;
             }
         }
 
         return true;
     }
 
-    // -------------------------------------------------------------------------
-    // Asignar / liberar unidades físicas
-    // -------------------------------------------------------------------------
-
-    /**
-     * Asigna unidades disponibles a cada línea de productos individuales.
-     * Lanza ValidationException si no hay suficientes.
-     */
-    public function asignarUnidades(Alquiler $alquiler): void
-    {
-        $alquiler->loadMissing('lineas.producto');
-
-        foreach ($alquiler->lineas as $linea) {
-            if ($linea->producto->tracking_mode !== TrackingMode::Individual) {
-                continue;
-            }
-
-            $cantidad = (int) $linea->cantidad;
-
-            $unidades = ProductoUnidad::query()
-                ->where('producto_id', $linea->producto_id)
-                ->where('estado', EstadoUnidad::Disponible->value)
-                ->lockForUpdate()
-                ->limit($cantidad)
-                ->get();
-
-            if ($unidades->count() < $cantidad) {
-                throw ValidationException::withMessages([
-                    'stock' => 'No hay suficientes unidades disponibles de «'.$linea->producto->nombre.'» ('.$unidades->count().' de '.$cantidad.' requeridas).',
-                ]);
-            }
-
-            $unidades->each(function (ProductoUnidad $unidad) use ($linea): void {
-                $unidad->update(['estado' => EstadoUnidad::Reservado]);
-                $linea->unidades()->syncWithoutDetaching([$unidad->id]);
-            });
-        }
-    }
-
-    /**
-     * Cambia el estado de las unidades asignadas a una linea según la transición del alquiler.
-     */
-    public function actualizarEstadoUnidades(Alquiler $alquiler, EstadoAlquiler $nuevoEstado): void
-    {
-        $alquiler->loadMissing('lineas.unidades');
-
-        $estadoUnidad = match ($nuevoEstado) {
-            EstadoAlquiler::Reservado => EstadoUnidad::Reservado,
-            EstadoAlquiler::Entregado, EstadoAlquiler::EnUso => EstadoUnidad::Alquilado,
-            EstadoAlquiler::Devuelto, EstadoAlquiler::Cerrado, EstadoAlquiler::Cancelado => EstadoUnidad::Disponible,
-            default => null,
-        };
-
-        if ($estadoUnidad === null) {
-            return;
+    private function paqueteTieneStock(
+        ?Paquete $paquete,
+        string $cantidadPaquetes,
+        Alquiler $alquiler,
+        ?int $excluirAlquilerId,
+    ): bool {
+        if ($paquete === null || $paquete->productos->isEmpty()) {
+            return false;
         }
 
-        foreach ($alquiler->lineas as $linea) {
-            foreach ($linea->unidades as $unidad) {
-                $unidad->update(['estado' => $estadoUnidad]);
+        foreach ($paquete->productos as $producto) {
+            $necesario = bcmul($cantidadPaquetes, (string) $producto->pivot->cantidad, 3);
+            $disponible = $this->cantidadDisponible(
+                $producto,
+                $alquiler->fecha_inicio_prevista,
+                $alquiler->fecha_fin_prevista,
+                $excluirAlquilerId,
+            );
+
+            if (bccomp($necesario, $disponible, 3) === 1) {
+                return false;
             }
         }
+
+        return true;
     }
 }

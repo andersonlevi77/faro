@@ -43,10 +43,6 @@ class ProductoController extends Controller
             'categorias' => Categoria::orderBy('nombre')->get(['id', 'nombre']),
             'marcas' => Marca::orderBy('nombre')->get(['id', 'nombre']),
             'presentaciones' => Presentacion::orderBy('nombre')->get(['id', 'nombre']),
-            'trackingModes' => collect(TrackingMode::cases())->map(fn (TrackingMode $t) => [
-                'value' => $t->value,
-                'label' => $t->etiqueta(),
-            ]),
         ]);
     }
 
@@ -54,18 +50,19 @@ class ProductoController extends Controller
     {
         $this->authorize('create', Producto::class);
 
-        $data = $request->validated();
+        $data = array_merge($request->validated(), [
+            'es_alquilable' => true,
+            'tracking_mode' => TrackingMode::Bulk->value,
+            'deposito_unitario' => '0',
+        ]);
         $data['creado_por'] = $request->user()->id;
         $data['precio_compra'] = 0;
         $data['precio_venta'] = 0;
         $data['stock_maximo'] = null;
         $data['activo'] = $request->boolean('activo', true);
-        $data['es_alquilable'] = $request->boolean('es_alquilable', true);
         $data['stock_minimo'] = $request->filled('stock_minimo') ? (int) $request->stock_minimo : 0;
-        $data['tracking_mode'] = $request->input('tracking_mode', TrackingMode::Bulk->value);
-        $data['stock_alquiler'] = $request->filled('stock_alquiler') ? $request->string('stock_alquiler') : '0';
-        $data['precio_alquiler_diario'] = $request->filled('precio_alquiler_diario') ? $request->string('precio_alquiler_diario') : null;
-        $data['deposito_unitario'] = $request->filled('deposito_unitario') ? $request->string('deposito_unitario') : null;
+        $data['stock_alquiler'] = $request->string('stock_alquiler');
+        $data['precio_alquiler_diario'] = $request->string('precio_alquiler_diario');
 
         Producto::create($data);
 
@@ -102,10 +99,6 @@ class ProductoController extends Controller
             'categorias' => Categoria::orderBy('nombre')->get(['id', 'nombre']),
             'marcas' => Marca::orderBy('nombre')->get(['id', 'nombre']),
             'presentaciones' => Presentacion::orderBy('nombre')->get(['id', 'nombre']),
-            'trackingModes' => collect(TrackingMode::cases())->map(fn (TrackingMode $t) => [
-                'value' => $t->value,
-                'label' => $t->etiqueta(),
-            ]),
         ]);
     }
 
@@ -113,18 +106,19 @@ class ProductoController extends Controller
     {
         $this->authorize('update', $producto);
 
-        $data = $request->validated();
+        $data = array_merge($request->validated(), [
+            'es_alquilable' => true,
+            'tracking_mode' => TrackingMode::Bulk->value,
+            'deposito_unitario' => '0',
+        ]);
         $data['actualizado_por'] = $request->user()->id;
         $data['precio_compra'] = 0;
         $data['precio_venta'] = 0;
         $data['stock_maximo'] = null;
         $data['activo'] = $request->boolean('activo', true);
-        $data['es_alquilable'] = $request->boolean('es_alquilable', true);
         $data['stock_minimo'] = $request->filled('stock_minimo') ? (int) $request->stock_minimo : 0;
-        $data['tracking_mode'] = $request->input('tracking_mode', TrackingMode::Bulk->value);
-        $data['stock_alquiler'] = $request->filled('stock_alquiler') ? $request->string('stock_alquiler') : '0';
-        $data['precio_alquiler_diario'] = $request->filled('precio_alquiler_diario') ? $request->string('precio_alquiler_diario') : null;
-        $data['deposito_unitario'] = $request->filled('deposito_unitario') ? $request->string('deposito_unitario') : null;
+        $data['stock_alquiler'] = $request->string('stock_alquiler');
+        $data['precio_alquiler_diario'] = $request->string('precio_alquiler_diario');
 
         $producto->update($data);
 

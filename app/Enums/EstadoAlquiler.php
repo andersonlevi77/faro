@@ -4,23 +4,20 @@ namespace App\Enums;
 
 enum EstadoAlquiler: string
 {
-    case Borrador = 'borrador';
-    case Reservado = 'reservado';
+    case Creado = 'creado';
     case Entregado = 'entregado';
-    case EnUso = 'en_uso';
     case Devuelto = 'devuelto';
-    case Cerrado = 'cerrado';
-    case Cancelado = 'cancelado';
 
     /**
+     * Estados que reservan stock de alquiler (hasta devolución).
+     *
      * @return list<string>
      */
     public static function valoresComprometenStock(): array
     {
         return [
-            self::Reservado->value,
+            self::Creado->value,
             self::Entregado->value,
-            self::EnUso->value,
         ];
     }
 
@@ -30,64 +27,47 @@ enum EstadoAlquiler: string
     public static function activos(): array
     {
         return [
-            self::Reservado,
+            self::Creado,
             self::Entregado,
-            self::EnUso,
         ];
     }
 
     public function etiqueta(): string
     {
         return match ($this) {
-            self::Borrador => 'Borrador',
-            self::Reservado => 'Reservado',
+            self::Creado => 'Creado',
             self::Entregado => 'Entregado',
-            self::EnUso => 'En uso',
             self::Devuelto => 'Devuelto',
-            self::Cerrado => 'Cerrado',
-            self::Cancelado => 'Cancelado',
         };
     }
 
     public function color(): string
     {
         return match ($this) {
-            self::Borrador => 'gray',
-            self::Reservado => 'yellow',
+            self::Creado => 'yellow',
             self::Entregado => 'blue',
-            self::EnUso => 'indigo',
             self::Devuelto => 'green',
-            self::Cerrado => 'emerald',
-            self::Cancelado => 'red',
         };
     }
 
     /**
-     * Estados del flujo principal (sin cancelado).
-     *
      * @return list<self>
      */
     public static function flujoPrincipal(): array
     {
         return [
-            self::Borrador,
-            self::Reservado,
+            self::Creado,
             self::Entregado,
-            self::EnUso,
             self::Devuelto,
-            self::Cerrado,
         ];
     }
 
     public function puedeTransicionarA(self $destino): bool
     {
         return match ($this) {
-            self::Borrador => in_array($destino, [self::Reservado, self::Cancelado], true),
-            self::Reservado => in_array($destino, [self::Entregado, self::Cancelado], true),
-            self::Entregado => $destino === self::EnUso,
-            self::EnUso => $destino === self::Devuelto,
-            self::Devuelto => $destino === self::Cerrado,
-            self::Cerrado, self::Cancelado => false,
+            self::Creado => $destino === self::Entregado,
+            self::Entregado => $destino === self::Devuelto,
+            self::Devuelto => false,
         };
     }
 }

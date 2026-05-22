@@ -55,7 +55,7 @@ test('asigna codigos secuenciales numericos al crear alquileres', function () {
     expect($segundo->codigo)->toBe('2');
 });
 
-test('se puede guardar precio diario personalizado en lineas del borrador', function () {
+test('se puede guardar precio diario personalizado en lineas del alquiler creado', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -87,7 +87,7 @@ test('se puede guardar precio diario personalizado en lineas del borrador', func
     expect((float) $linea->precio_diario)->toBe(12.5);
 });
 
-test('se puede crear un borrador y pasar a reservado con stock suficiente', function () {
+test('al crear alquiler queda en estado creado y reserva stock', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -119,30 +119,30 @@ test('se puede crear un borrador y pasar a reservado con stock suficiente', func
     ])->assertRedirect();
 
     $alquiler = Alquiler::query()->firstOrFail();
-    expect($alquiler->estadoEnum())->toBe(EstadoAlquiler::Borrador);
+    expect($alquiler->estadoEnum())->toBe(EstadoAlquiler::Creado);
 
     $this->post(route('alquileres.estado.update', $alquiler), [
-        'estado' => EstadoAlquiler::Reservado->value,
+        'estado' => EstadoAlquiler::Entregado->value,
     ])->assertRedirect();
 
-    expect($alquiler->fresh()->estadoEnum())->toBe(EstadoAlquiler::Reservado);
+    expect($alquiler->fresh()->estadoEnum())->toBe(EstadoAlquiler::Entregado);
 
     $historial = $alquiler->fresh()->historialEstados()->orderByDesc('id')->get();
     expect($historial)->toHaveCount(2);
-    expect($historial[0]->estado_nuevo)->toBe(EstadoAlquiler::Reservado->value);
-    expect($historial[1]->estado_nuevo)->toBe(EstadoAlquiler::Borrador->value);
+    expect($historial[0]->estado_nuevo)->toBe(EstadoAlquiler::Entregado->value);
+    expect($historial[1]->estado_nuevo)->toBe(EstadoAlquiler::Creado->value);
     expect($historial[0]->user_id)->toBe($user->id);
 
     $this->get(route('alquileres.show', $alquiler))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('historialEstados', 2)
-            ->where('estadoActual.value', 'reservado')
-            ->where('historialEstados.0.estado_nuevo_label', 'Reservado')
-            ->where('historialEstados.1.estado_nuevo_label', 'Borrador'));
+            ->where('estadoActual.value', 'entregado')
+            ->where('historialEstados.0.estado_nuevo_label', 'Entregado')
+            ->where('historialEstados.1.estado_nuevo_label', 'Creado'));
 });
 
-test('no se puede reservar si no hay stock suficiente', function () {
+test('no se puede crear alquiler si no hay stock suficiente', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -171,11 +171,54 @@ test('no se puede reservar si no hay stock suficiente', function () {
         'lineas' => [
             ['producto_id' => $producto->id, 'cantidad' => 5],
         ],
+    ])->assertSessionHasErrors('lineas');
+
+    expect(Alquiler::query()->count())->toBe(0);
+});
+
+test('al devolver un alquiler el stock queda disponible de nuevo', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $cliente = Cliente::factory()->create();
+    $producto = Producto::factory()->create([
+        'es_alquilable' => true,
+        'stock_alquiler' => '5',
+        'precio_alquiler_diario' => '10.00',
+        'activo' => true,
+    ]);
+
+    $inicio = now()->addDay()->toDateString();
+    $fin = now()->addDays(3)->toDateString();
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['producto_id' => $producto->id, 'cantidad' => 5],
+        ],
     ]);
 
     $alquiler = Alquiler::query()->firstOrFail();
 
     $this->post(route('alquileres.estado.update', $alquiler), [
-        'estado' => EstadoAlquiler::Reservado->value,
-    ])->assertSessionHas('error');
+        'estado' => EstadoAlquiler::Entregado->value,
+    ]);
+
+    $this->post(route('alquileres.estado.update', $alquiler->fresh()), [
+        'estado' => EstadoAlquiler::Devuelto->value,
+        'danio_monto' => '0',
+    ]);
+
+    expect($alquiler->fresh()->estadoEnum())->toBe(EstadoAlquiler::Devuelto);
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['producto_id' => $producto->id, 'cantidad' => 5],
+        ],
+    ])->assertRedirect();
 });

@@ -15,21 +15,14 @@ import AppLayout from '@/layouts/app-layout';
 import { create, index, store } from '@/routes/productos';
 import type { BreadcrumbItem } from '@/types';
 
-interface TrackingModeOption {
-    value: string;
-    label: string;
-}
-
 export default function ProductosCrear({
     categorias,
     marcas,
     presentaciones,
-    trackingModes,
 }: {
     categorias: CatalogOption[];
     marcas: CatalogOption[];
     presentaciones: CatalogOption[];
-    trackingModes: TrackingModeOption[];
 }) {
     const [categoriasOptions, setCategoriasOptions] = useState(categorias);
     const [marcasOptions, setMarcasOptions] = useState(marcas);
@@ -50,11 +43,8 @@ export default function ProductosCrear({
         presentacion_id: '' as number | '',
         stock_minimo: '',
         activo: true,
-        es_alquilable: true,
-        tracking_mode: 'bulk',
         stock_alquiler: '',
         precio_alquiler_diario: '',
-        deposito_unitario: '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -148,12 +138,7 @@ export default function ProductosCrear({
                         <Label htmlFor="activo">Producto activo</Label>
                     </div>
 
-                    <ProductoAlquilerFields
-                        data={data}
-                        setData={setData}
-                        errors={errors}
-                        trackingModes={trackingModes}
-                    />
+                    <ProductoAlquilerFields data={data} setData={setData} errors={errors} />
 
                     <div className="faro-form-actions">
                         <Button type="submit" variant="success" disabled={processing} className="faro-btn-primary">

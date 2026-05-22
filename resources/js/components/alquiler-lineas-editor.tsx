@@ -8,16 +8,37 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     productoAlquilerComboboxOptions,
     type ProductoAlquilerComboboxSource,
 } from '@/lib/combobox-options';
 import { fmtQ } from '@/lib/utils';
-import { emptyAlquilerLinea, type AlquilerLineaForm } from '@/types/alquiler-linea';
+import {
+    alquilerLineaFromPaquete,
+    alquilerLineaFromProducto,
+    emptyAlquilerLinea,
+    type AlquilerLineaForm,
+} from '@/types/alquiler-linea';
+
+export type PaqueteAlquilerSource = {
+    id: number;
+    nombre: string;
+    codigo: string;
+    precio_alquiler: string;
+    productos: { nombre: string; codigo: string; cantidad: string }[];
+};
 
 type AlquilerLineasEditorProps = {
     lineas: AlquilerLineaForm[];
     onLineasChange: (lineas: AlquilerLineaForm[]) => void;
     productosAlquiler: ProductoAlquilerComboboxSource[];
+    paquetesAlquiler?: PaqueteAlquilerSource[];
     errors?: Record<string, string>;
     onConfirmRemove?: (idx: number, onConfirm: () => void) => void;
 };
@@ -26,6 +47,7 @@ export function AlquilerLineasEditor({
     lineas,
     onLineasChange,
     productosAlquiler,
+    paquetesAlquiler = [],
     errors = {},
     onConfirmRemove,
 }: AlquilerLineasEditorProps) {
@@ -36,9 +58,24 @@ export function AlquilerLineasEditor({
         [productosAlquiler],
     );
 
+    const paqueteOptions = useMemo(
+        () =>
+            paquetesAlquiler.map((p) => ({
+                value: p.id,
+                label: `${p.nombre} · ${p.codigo}`,
+                searchText: [p.nombre, p.codigo, ...p.productos.map((i) => i.nombre)].join(' '),
+            })),
+        [paquetesAlquiler],
+    );
+
     const productoPorId = useMemo(
         () => new Map(productosAlquiler.map((producto) => [producto.id, producto])),
         [productosAlquiler],
+    );
+
+    const paquetePorId = useMemo(
+        () => new Map(paquetesAlquiler.map((paquete) => [paquete.id, paquete])),
+        [paquetesAlquiler],
     );
 
     const addLinea = () => {
@@ -62,6 +99,14 @@ export function AlquilerLineasEditor({
         onLineasChange(lineas.map((linea, index) => (index === idx ? { ...linea, ...patch } : linea)));
     };
 
+    const setTipoLinea = (idx: number, tipo: 'producto' | 'paquete') => {
+        if (tipo === 'producto') {
+            updateLinea(idx, { producto_id: '', paquete_id: '', precio_diario: '' });
+        } else {
+            updateLinea(idx, { producto_id: '', paquete_id: '', precio_diario: '' });
+        }
+    };
+
     const handleProductoSelect = (idx: number, productoId: number | '') => {
         if (productoId === '') {
             updateLinea(idx, { producto_id: '', precio_diario: '' });
@@ -72,8 +117,21 @@ export function AlquilerLineasEditor({
         const producto = productoPorId.get(productoId);
 
         updateLinea(idx, {
-            producto_id: productoId,
-            precio_diario: producto?.precio_alquiler_diario ?? '',
+            ...alquilerLineaFromProducto(productoId, producto?.precio_alquiler_diario ?? ''),
+        });
+    };
+
+    const handlePaqueteSelect = (idx: number, paqueteId: number | '') => {
+        if (paqueteId === '') {
+            updateLinea(idx, { paquete_id: '', precio_diario: '' });
+
+            return;
+        }
+
+        const paquete = paquetePorId.get(paqueteId);
+
+        updateLinea(idx, {
+            ...alquilerLineaFromPaquete(paqueteId, paquete?.precio_alquiler ?? ''),
         });
     };
 
@@ -132,26 +190,56 @@ export function AlquilerLineasEditor({
                 <InputError message={errors.lineas} />
                 <div className="space-y-3">
                     {lineas.map((linea, idx) => {
+                        const esPaquete = linea.paquete_id !== '';
                         const producto =
                             linea.producto_id !== ''
                                 ? productoPorId.get(linea.producto_id)
                                 : undefined;
+                        const paquete =
+                            linea.paquete_id !== '' ? paquetePorId.get(linea.paquete_id) : undefined;
 
                         return (
                             <div
                                 key={idx}
                                 className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 p-4"
                             >
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Label className="text-xs text-muted-foreground">Tipo</Label>
+                                    <Select
+                                        value={esPaquete ? 'paquete' : 'producto'}
+                                        onValueChange={(v) =>
+                                            setTipoLinea(idx, v as 'producto' | 'paquete')
+                                        }
+                                    >
+                                        <SelectTrigger className="w-[140px] bg-white dark:bg-card">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="producto">Producto</SelectItem>
+                                            <SelectItem value="paquete">Paquete</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                     <div className="min-w-0 flex-1 space-y-2">
-                                        <Label>Producto</Label>
-                                        <SearchableCombobox
-                                            value={linea.producto_id}
-                                            onValueChange={(id) => handleProductoSelect(idx, id)}
-                                            options={productoOptions}
-                                            placeholder="Buscar por nombre, código o marca…"
-                                            emptyMessage="Ningún producto coincide con la búsqueda"
-                                        />
+                                        <Label>{esPaquete ? 'Paquete' : 'Producto'}</Label>
+                                        {esPaquete ? (
+                                            <SearchableCombobox
+                                                value={linea.paquete_id}
+                                                onValueChange={(id) => handlePaqueteSelect(idx, id)}
+                                                options={paqueteOptions}
+                                                placeholder="Buscar paquete…"
+                                                emptyMessage="Ningún paquete coincide"
+                                            />
+                                        ) : (
+                                            <SearchableCombobox
+                                                value={linea.producto_id}
+                                                onValueChange={(id) => handleProductoSelect(idx, id)}
+                                                options={productoOptions}
+                                                placeholder="Buscar por nombre, código o marca…"
+                                                emptyMessage="Ningún producto coincide con la búsqueda"
+                                            />
+                                        )}
                                     </div>
                                     <div className="w-full space-y-2 sm:w-28">
                                         <Label>Cantidad</Label>
@@ -172,11 +260,7 @@ export function AlquilerLineasEditor({
                                             step="0.01"
                                             min="0"
                                             value={linea.precio_diario}
-                                            placeholder={
-                                                producto
-                                                    ? producto.precio_alquiler_diario
-                                                    : '0.00'
-                                            }
+                                            placeholder="0.00"
                                             onChange={(event) =>
                                                 updateLinea(idx, { precio_diario: event.target.value })
                                             }
@@ -203,6 +287,16 @@ export function AlquilerLineasEditor({
                                         </span>
                                     </IconActionTooltip>
                                 </div>
+                                {paquete && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Incluye:{' '}
+                                        {paquete.productos
+                                            .map((i) => `${i.cantidad}× ${i.nombre}`)
+                                            .join(', ')}
+                                        {' · '}
+                                        Lista: {fmtQ(paquete.precio_alquiler)}/día
+                                    </p>
+                                )}
                                 {producto && linea.precio_diario && (
                                     <p className="text-xs text-muted-foreground">
                                         Lista: {fmtQ(producto.precio_alquiler_diario)}/día
@@ -213,6 +307,7 @@ export function AlquilerLineasEditor({
                                 <InputError
                                     message={
                                         errors[`lineas.${idx}.producto_id`] ??
+                                        errors[`lineas.${idx}.paquete_id`] ??
                                         errors[`lineas.${idx}.cantidad`] ??
                                         errors[`lineas.${idx}.precio_diario`]
                                     }

@@ -32,13 +32,9 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
 const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
 const ESTADO_COLOR: Record<string, string> = {
-    borrador: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-    reservado: 'bg-yellow-200 text-yellow-900 dark:bg-yellow-800/60 dark:text-yellow-200',
+    creado: 'bg-yellow-200 text-yellow-900 dark:bg-yellow-800/60 dark:text-yellow-200',
     entregado: 'bg-blue-200 text-blue-900 dark:bg-blue-800/60 dark:text-blue-200',
-    en_uso: 'bg-indigo-200 text-indigo-900 dark:bg-indigo-800/60 dark:text-indigo-200',
     devuelto: 'bg-green-200 text-green-900 dark:bg-green-800/60 dark:text-green-200',
-    cerrado: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-    cancelado: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 };
 
 function buildCalendarDays(anio: number, mes: number): (number | null)[] {

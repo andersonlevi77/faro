@@ -26,7 +26,7 @@ class AlquilerFactory extends Factory
         return [
             'cliente_id' => Cliente::factory(),
             'user_id' => User::factory(),
-            'estado' => EstadoAlquiler::Borrador,
+            'estado' => EstadoAlquiler::Creado,
             'fecha_inicio_prevista' => $inicio->format('Y-m-d'),
             'fecha_fin_prevista' => $fin->format('Y-m-d'),
             'deposito_monto' => fake()->randomFloat(2, 0, 500),

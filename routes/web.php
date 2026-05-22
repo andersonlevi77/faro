@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MantenimientoController;
 use App\Http\Controllers\MarcaController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\PaqueteController;
 use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProductoUnidadController;
@@ -58,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('presentaciones', [PresentacionController::class, 'store'])->name('presentaciones.store');
 
     Route::resource('productos', ProductoController::class)->names('productos');
+    Route::resource('paquetes', PaqueteController::class)->names('paquetes');
     Route::resource('productos.unidades', ProductoUnidadController::class)
         ->only(['index', 'store', 'update', 'destroy'])
         ->shallow();

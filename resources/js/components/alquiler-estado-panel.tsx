@@ -41,7 +41,6 @@ export function AlquilerEstadoPanel({
     onCambiarEstado: (value: string) => void;
 }) {
     const indiceActual = flujoPrincipal.findIndex((e) => e.value === estadoActual.value);
-    const esCancelado = estadoActual.value === 'cancelado';
 
     return (
         <Card className="overflow-hidden">
@@ -66,8 +65,7 @@ export function AlquilerEstadoPanel({
             </CardHeader>
 
             <CardContent className="space-y-6 pt-6">
-                {!esCancelado && (
-                    <div>
+                <div>
                         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             Flujo del contrato
                         </p>
@@ -104,13 +102,6 @@ export function AlquilerEstadoPanel({
                             })}
                         </div>
                     </div>
-                )}
-
-                {esCancelado && (
-                    <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
-                        Este alquiler fue cancelado y no continúa el flujo normal del contrato.
-                    </p>
-                )}
 
                 {puedeCambiarEstado && transicionesPermitidas.length > 0 && (
                     <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
@@ -120,16 +111,12 @@ export function AlquilerEstadoPanel({
                                 <Button
                                     key={t.value}
                                     type="button"
-                                    variant={t.value === 'cancelado' ? 'destructive' : 'outline'}
+                                    variant="outline"
                                     size="lg"
-                                    className={cn(
-                                        t.value !== 'cancelado' &&
-                                            'border-2 hover:opacity-90',
-                                        t.value !== 'cancelado' && stepEstadoAlquiler(t.color),
-                                    )}
+                                    className={cn('border-2 hover:opacity-90', stepEstadoAlquiler(t.color))}
                                     onClick={() => onCambiarEstado(t.value)}
                                 >
-                                    {t.value === 'cancelado' ? 'Cancelar alquiler' : `Marcar como ${t.label}`}
+                                    {`Marcar como ${t.label}`}
                                 </Button>
                             ))}
                         </div>

@@ -38,13 +38,9 @@ const SCORE_COLOR: Record<string, string> = {
 };
 
 const ESTADO_COLOR: Record<string, string> = {
-    borrador: 'text-muted-foreground',
-    reservado: 'text-yellow-700 dark:text-yellow-400',
+    creado: 'text-yellow-700 dark:text-yellow-400',
     entregado: 'text-blue-700 dark:text-blue-400',
-    en_uso: 'text-indigo-700 dark:text-indigo-400',
     devuelto: 'text-green-700 dark:text-green-400',
-    cerrado: 'text-green-600 dark:text-green-500',
-    cancelado: 'text-destructive',
 };
 
 export default function ClientesVer({
