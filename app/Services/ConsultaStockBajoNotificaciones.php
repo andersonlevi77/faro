@@ -20,14 +20,19 @@ class ConsultaStockBajoNotificaciones
      */
     public function obtener(): Collection
     {
-        return Producto::query()
+        $productos = Producto::query()
             ->where('activo', true)
             ->where('es_alquilable', true)
             ->where('stock_minimo', '>', 0)
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'codigo', 'stock_alquiler', 'stock_minimo'])
-            ->filter(function (Producto $producto): bool {
-                $disponible = (float) $this->verificador->cantidadDisponibleActiva($producto);
+            ->limit(80)
+            ->get(['id', 'nombre', 'codigo', 'stock_alquiler', 'stock_minimo']);
+
+        $disponibles = $this->verificador->cantidadesDisponiblesActivasParaProductos($productos);
+
+        return $productos
+            ->filter(function (Producto $producto) use ($disponibles): bool {
+                $disponible = (float) ($disponibles[$producto->id] ?? 0);
 
                 return $disponible <= (float) $producto->stock_minimo;
             })
@@ -36,7 +41,7 @@ class ConsultaStockBajoNotificaciones
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
                 'codigo' => $producto->codigo,
-                'disponible' => $this->verificador->cantidadDisponibleActiva($producto),
+                'disponible' => $disponibles[$producto->id] ?? '0',
                 'stock_minimo' => (string) $producto->stock_minimo,
                 'stock_total' => (string) (int) (float) $producto->stock_alquiler,
             ])

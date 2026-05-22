@@ -18,7 +18,8 @@ export default defineConfig({
         }),
         tailwindcss(),
         wayfinder({
-            formVariants: true,
+            // formVariants regenera rutas en cada cambio y puede dejar Vite en bucle de recarga.
+            formVariants: process.env.WAYFINDER_FORM_VARIANTS === 'true',
         }),
     ],
     esbuild: {

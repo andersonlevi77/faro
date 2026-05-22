@@ -42,12 +42,17 @@ class ProductoController extends Controller
 
         $productos = $query->paginate(15)->withQueryString();
 
-        $productos->through(function (Producto $producto) use ($verificador): Producto {
-            $producto->setAttribute('disponibilidad_actual', $verificador->cantidadDisponibleActiva($producto));
-            $producto->setAttribute('stock_alquiler', (string) (int) (float) $producto->stock_alquiler);
+        $coleccion = $productos->getCollection();
+        $disponibles = $verificador->cantidadesDisponiblesActivasParaProductos($coleccion);
 
-            return $producto;
-        });
+        $productos->setCollection(
+            $coleccion->map(function (Producto $producto) use ($disponibles): Producto {
+                $producto->setAttribute('disponibilidad_actual', $disponibles[$producto->id] ?? '0');
+                $producto->setAttribute('stock_alquiler', (string) (int) (float) $producto->stock_alquiler);
+
+                return $producto;
+            }),
+        );
 
         return Inertia::render('inventario/productos/index', [
             'productos' => $productos,

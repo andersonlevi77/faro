@@ -4,8 +4,9 @@ namespace App\Http\Middleware;
 
 use App\Services\ConsultaAlquileresNotificaciones;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
@@ -88,6 +89,10 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        return app(ConsultaAlquileresNotificaciones::class)->paraCompartir();
+        return Cache::remember(
+            'alquiler-notificaciones:'.$user->id,
+            now()->addSeconds(90),
+            fn () => app(ConsultaAlquileresNotificaciones::class)->paraCompartir(),
+        );
     }
 }

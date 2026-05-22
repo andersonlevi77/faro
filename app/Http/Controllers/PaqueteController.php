@@ -43,14 +43,20 @@ class PaqueteController extends Controller
 
         $paquetes = $query->paginate(15)->withQueryString();
 
-        $paquetes->through(function (Paquete $paquete) use ($verificador): Paquete {
-            $paquete->setAttribute(
-                'stock_disponible',
-                $verificador->cantidadDisponiblePaqueteActiva($paquete),
-            );
+        $coleccion = $paquetes->getCollection();
+        $productos = $coleccion->flatMap(fn (Paquete $paquete) => $paquete->productos)->unique('id');
+        $disponibles = $verificador->cantidadesDisponiblesActivasParaProductos($productos);
 
-            return $paquete;
-        });
+        $paquetes->setCollection(
+            $coleccion->map(function (Paquete $paquete) use ($verificador, $disponibles): Paquete {
+                $paquete->setAttribute(
+                    'stock_disponible',
+                    $verificador->cantidadDisponiblePaqueteActivaDesdeMap($paquete, $disponibles),
+                );
+
+                return $paquete;
+            }),
+        );
 
         return Inertia::render('paquetes/index', [
             'paquetes' => $paquetes,

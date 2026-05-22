@@ -9,9 +9,121 @@ use App\Models\Paquete;
 use App\Models\Producto;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class VerificadorDisponibilidadAlquiler
 {
+    /**
+     * Disponibilidad activa para varios productos en pocas consultas (evita N+1 en listados).
+     *
+     * @param  iterable<int, Producto>  $productos
+     * @return array<int, string>
+     */
+    public function cantidadesDisponiblesActivasParaProductos(
+        iterable $productos,
+        ?int $excluirAlquilerId = null,
+    ): array {
+        $porId = collect($productos)
+            ->mapWithKeys(fn (Producto $producto) => [$producto->id => $producto]);
+
+        if ($porId->isEmpty()) {
+            return [];
+        }
+
+        $comprometidas = $this->comprometidasActivasPorProductoIds(
+            $porId->keys()->all(),
+            $excluirAlquilerId,
+        );
+
+        $disponibles = [];
+
+        foreach ($porId as $id => $producto) {
+            $comprometida = $comprometidas[$id] ?? '0';
+            $disponibles[$id] = $this->formatearCantidadEntera(
+                bcsub((string) $producto->stock_alquiler, $comprometida, 3),
+            );
+        }
+
+        return $disponibles;
+    }
+
+    /**
+     * @param  array<int, string>  $disponiblesPorProductoId
+     */
+    public function cantidadDisponiblePaqueteActivaDesdeMap(
+        Paquete $paquete,
+        array $disponiblesPorProductoId,
+    ): string {
+        $paquete->loadMissing('productos');
+
+        if ($paquete->productos->isEmpty()) {
+            return '0';
+        }
+
+        $maximo = null;
+
+        foreach ($paquete->productos as $producto) {
+            $disponible = $disponiblesPorProductoId[$producto->id] ?? '0';
+            $porPaquete = bcdiv($disponible, (string) $producto->pivot->cantidad, 0);
+            $maximo = $maximo === null
+                ? (int) $porPaquete
+                : min($maximo, (int) $porPaquete);
+        }
+
+        return (string) max(0, $maximo ?? 0);
+    }
+
+    /**
+     * @param  list<int>  $productoIds
+     * @return array<int, string>
+     */
+    private function comprometidasActivasPorProductoIds(
+        array $productoIds,
+        ?int $excluirAlquilerId = null,
+    ): array {
+        if ($productoIds === []) {
+            return [];
+        }
+
+        $estados = EstadoAlquiler::valoresComprometenStock();
+
+        $directas = AlquilerLinea::query()
+            ->selectRaw('producto_id, SUM(cantidad) as total')
+            ->whereIn('producto_id', $productoIds)
+            ->whereHas('alquiler', function (Builder $query) use ($estados, $excluirAlquilerId): void {
+                $query->whereIn('estado', $estados);
+                if ($excluirAlquilerId !== null) {
+                    $query->where('id', '!=', $excluirAlquilerId);
+                }
+            })
+            ->groupBy('producto_id')
+            ->pluck('total', 'producto_id');
+
+        $desdePaquetes = DB::table('alquiler_lineas')
+            ->join('alquileres', 'alquileres.id', '=', 'alquiler_lineas.alquiler_id')
+            ->join('paquete_producto', 'paquete_producto.paquete_id', '=', 'alquiler_lineas.paquete_id')
+            ->whereIn('paquete_producto.producto_id', $productoIds)
+            ->whereNotNull('alquiler_lineas.paquete_id')
+            ->whereIn('alquileres.estado', $estados)
+            ->when($excluirAlquilerId !== null, fn ($query) => $query->where('alquileres.id', '!=', $excluirAlquilerId))
+            ->selectRaw('paquete_producto.producto_id as producto_id, SUM(alquiler_lineas.cantidad * paquete_producto.cantidad) as total')
+            ->groupBy('paquete_producto.producto_id')
+            ->pluck('total', 'producto_id');
+
+        $totales = [];
+
+        foreach ($productoIds as $productoId) {
+            $suma = bcadd(
+                (string) ($directas[$productoId] ?? 0),
+                (string) ($desdePaquetes[$productoId] ?? 0),
+                3,
+            );
+            $totales[$productoId] = $suma;
+        }
+
+        return $totales;
+    }
+
     /**
      * Unidades fuera de inventario por alquileres activos (creado o entregado).
      */
