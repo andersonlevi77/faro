@@ -1,4 +1,4 @@
-FROM php:8.3-fpm
+FROM php:8.4-fpm
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -39,9 +39,13 @@ RUN composer install \
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
 
-RUN php artisan package:discover --ansi
+RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php && \
+    cp .env.example .env && \
+    php artisan package:discover --ansi && \
+    php artisan key:generate --force
+
+RUN npm run build
 
 RUN chmod -R 775 storage bootstrap/cache && \
     chown -R www-data:www-data storage bootstrap/cache
