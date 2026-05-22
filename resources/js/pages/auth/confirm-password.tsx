@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
+import { inertiaFormProps } from '@/lib/inertia-form-props';
 import { store } from '@/routes/password/confirm';
 
 export default function ConfirmPassword() {
@@ -15,7 +16,7 @@ export default function ConfirmPassword() {
         >
             <Head title="Confirmar contraseña" />
 
-            <Form {...store.form()} resetOnSuccess={['password']}>
+            <Form {...inertiaFormProps(store, 'post')} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">

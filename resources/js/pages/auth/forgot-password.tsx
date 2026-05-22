@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import { inertiaFormProps } from '@/lib/inertia-form-props';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
@@ -25,7 +26,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
             )}
 
             <div className="space-y-6">
-                <Form {...email.form()}>
+                <Form {...inertiaFormProps(email, 'post')}>
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">

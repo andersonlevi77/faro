@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { inertiaFormProps } from '@/lib/inertia-form-props';
 import { regenerateRecoveryCodes } from '@/routes/two-factor';
 
 type Props = {
@@ -81,7 +82,7 @@ export default function TwoFactorRecoveryCodes({
 
                     {canRegenerateCodes && (
                         <Form
-                            {...regenerateRecoveryCodes.form()}
+                            {...inertiaFormProps(regenerateRecoveryCodes, 'post')}
                             options={{ preserveScroll: true }}
                             onSuccess={fetchRecoveryCodes}
                         >

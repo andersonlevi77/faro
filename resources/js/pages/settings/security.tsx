@@ -3,6 +3,7 @@ import { Form, Head } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { useRef, useState } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
+import { inertiaFormProps } from '@/lib/inertia-form-props';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -65,7 +66,7 @@ export default function Security({
                     />
 
                     <Form
-                        {...SecurityController.update.form()}
+                        {...inertiaFormProps(SecurityController.update, 'put')}
                         options={{
                             preserveScroll: true,
                         }}
@@ -184,7 +185,7 @@ export default function Security({
                                 </p>
 
                                 <div className="relative inline">
-                                    <Form {...disable.form()}>
+                                    <Form {...inertiaFormProps(disable, 'delete')}>
                                         {({ processing }) => (
                                             <Button
                                                 variant="destructive"
@@ -224,7 +225,7 @@ export default function Security({
                                         </Button>
                                     ) : (
                                         <Form
-                                            {...enable.form()}
+                                            {...inertiaFormProps(enable, 'post')}
                                             onSuccess={() =>
                                                 setShowSetupModal(true)
                                             }

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
+import { inertiaFormProps } from '@/lib/inertia-form-props';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
@@ -25,7 +26,7 @@ export default function Login({ status, canResetPassword }: Props) {
                 <p className="mb-4 text-center text-sm text-success">{status}</p>
             )}
 
-            <Form {...store.form()} resetOnSuccess={['password']} className="w-full space-y-5">
+            <Form {...inertiaFormProps(store, 'post')} resetOnSuccess={['password']} className="w-full space-y-5">
                 {({ processing, errors }) => (
                     <>
                         <div className="space-y-1.5">
