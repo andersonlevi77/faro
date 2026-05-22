@@ -56,7 +56,7 @@ test('el servicio agrupa proximos en ventana de dias y atrasados', function () {
         'fecha_fin_prevista' => now()->subDay()->toDateString(),
     ]);
 
-    $datos = (new ConsultaAlquileresNotificaciones(diasVentana: 7, limite: 10))->paraCompartir();
+    $datos = app(ConsultaAlquileresNotificaciones::class)->paraCompartir();
 
     expect($datos['proximos'])->toHaveCount(1)
         ->and($datos['atrasados'])->toHaveCount(1)

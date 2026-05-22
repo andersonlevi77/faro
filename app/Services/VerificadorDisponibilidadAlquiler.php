@@ -59,7 +59,37 @@ class VerificadorDisponibilidadAlquiler
     ): string {
         $comprometida = $this->cantidadComprometidaActiva($producto, $excluirAlquilerId);
 
-        return bcsub((string) $producto->stock_alquiler, $comprometida, 3);
+        return $this->formatearCantidadEntera(
+            bcsub((string) $producto->stock_alquiler, $comprometida, 3),
+        );
+    }
+
+    public function cantidadDisponiblePaqueteActiva(
+        Paquete $paquete,
+        ?int $excluirAlquilerId = null,
+    ): string {
+        $paquete->loadMissing('productos');
+
+        if ($paquete->productos->isEmpty()) {
+            return '0';
+        }
+
+        $maximo = null;
+
+        foreach ($paquete->productos as $producto) {
+            $disponible = $this->cantidadDisponibleActiva($producto, $excluirAlquilerId);
+            $porPaquete = bcdiv($disponible, (string) $producto->pivot->cantidad, 0);
+            $maximo = $maximo === null
+                ? (int) $porPaquete
+                : min($maximo, (int) $porPaquete);
+        }
+
+        return (string) max(0, $maximo ?? 0);
+    }
+
+    private function formatearCantidadEntera(string $cantidad): string
+    {
+        return (string) max(0, (int) floor((float) $cantidad));
     }
 
     public function cantidadComprometida(
@@ -180,19 +210,32 @@ class VerificadorDisponibilidadAlquiler
      */
     public function mensajeErrorStockLineas(array $lineas, ?int $excluirAlquilerId = null): ?string
     {
+        /** @var array<int, string> $demandaProductos */
+        $demandaProductos = [];
+        /** @var array<int, string> $demandaPaquetes */
+        $demandaPaquetes = [];
+
         foreach ($lineas as $row) {
             if (! empty($row['paquete_id'])) {
-                $paquete = Paquete::query()->with('productos')->find((int) $row['paquete_id']);
+                $paqueteId = (int) $row['paquete_id'];
+                $demandaPaquetes[$paqueteId] = bcadd(
+                    $demandaPaquetes[$paqueteId] ?? '0',
+                    (string) $row['cantidad'],
+                    3,
+                );
+
+                $paquete = Paquete::query()->with('productos')->find($paqueteId);
                 if ($paquete === null) {
                     continue;
                 }
 
                 foreach ($paquete->productos as $producto) {
-                    $necesario = bcmul((string) $row['cantidad'], (string) $producto->pivot->cantidad, 3);
-                    $disponible = $this->cantidadDisponibleActiva($producto, $excluirAlquilerId);
-                    if (bccomp($necesario, $disponible, 3) === 1) {
-                        return 'No hay suficiente «'.$producto->nombre.'» disponible (máx. '.$disponible.' unidad(es)).';
-                    }
+                    $unidades = bcmul((string) $row['cantidad'], (string) $producto->pivot->cantidad, 3);
+                    $demandaProductos[$producto->id] = bcadd(
+                        $demandaProductos[$producto->id] ?? '0',
+                        $unidades,
+                        3,
+                    );
                 }
 
                 continue;
@@ -202,13 +245,38 @@ class VerificadorDisponibilidadAlquiler
                 continue;
             }
 
-            $producto = Producto::query()->find((int) $row['producto_id']);
+            $productoId = (int) $row['producto_id'];
+            $demandaProductos[$productoId] = bcadd(
+                $demandaProductos[$productoId] ?? '0',
+                (string) $row['cantidad'],
+                3,
+            );
+        }
+
+        foreach ($demandaPaquetes as $paqueteId => $cantidadSolicitada) {
+            $paquete = Paquete::query()->with('productos')->find($paqueteId);
+            if ($paquete === null) {
+                continue;
+            }
+
+            if (! $paquete->activo || $paquete->productos->isEmpty()) {
+                return 'El paquete «'.$paquete->nombre.'» no está disponible.';
+            }
+
+            $disponiblePaquetes = $this->cantidadDisponiblePaqueteActiva($paquete, $excluirAlquilerId);
+            if (bccomp($cantidadSolicitada, $disponiblePaquetes, 3) === 1) {
+                return 'No hay suficientes unidades del paquete «'.$paquete->nombre.'» disponibles (máx. '.$disponiblePaquetes.').';
+            }
+        }
+
+        foreach ($demandaProductos as $productoId => $necesario) {
+            $producto = Producto::query()->find($productoId);
             if ($producto === null) {
                 continue;
             }
 
             $disponible = $this->cantidadDisponibleActiva($producto, $excluirAlquilerId);
-            if (bccomp((string) $row['cantidad'], $disponible, 3) === 1) {
+            if (bccomp($necesario, $disponible, 3) === 1) {
                 return 'No hay suficiente «'.$producto->nombre.'» disponible (máx. '.$disponible.' unidad(es)).';
             }
         }

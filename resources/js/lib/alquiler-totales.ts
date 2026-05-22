@@ -25,6 +25,7 @@ export function diasContratoPrevistos(fechaInicio: string, fechaFin: string): nu
 function precioDiarioLinea(
     linea: AlquilerLineaForm,
     precioListaPorProductoId: Map<number, string>,
+    precioListaPorPaqueteId: Map<number, string>,
 ): number {
     const manual = linea.precio_diario.trim();
     if (manual !== '' && !Number.isNaN(Number.parseFloat(manual))) {
@@ -32,6 +33,11 @@ function precioDiarioLinea(
     }
     if (linea.producto_id !== '') {
         const lista = precioListaPorProductoId.get(Number(linea.producto_id));
+
+        return lista !== undefined && lista !== '' ? Math.max(0, Number.parseFloat(lista) || 0) : 0;
+    }
+    if (linea.paquete_id !== '') {
+        const lista = precioListaPorPaqueteId.get(Number(linea.paquete_id));
 
         return lista !== undefined && lista !== '' ? Math.max(0, Number.parseFloat(lista) || 0) : 0;
     }
@@ -47,6 +53,7 @@ export function totalAlquilerEstimadoDesdeLineas(
     fechaFin: string,
     lineas: AlquilerLineaForm[],
     precioListaPorProductoId: Map<number, string>,
+    precioListaPorPaqueteId: Map<number, string> = new Map(),
 ): number {
     const dias = diasContratoPrevistos(fechaInicio, fechaFin);
     if (dias === 0) {
@@ -55,7 +62,7 @@ export function totalAlquilerEstimadoDesdeLineas(
     let suma = 0;
     for (const linea of lineas) {
         const cant = Number.parseFloat(String(linea.cantidad)) || 0;
-        const precio = precioDiarioLinea(linea, precioListaPorProductoId);
+        const precio = precioDiarioLinea(linea, precioListaPorProductoId, precioListaPorPaqueteId);
         suma += cant * precio * dias;
     }
 

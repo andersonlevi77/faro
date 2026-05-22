@@ -73,7 +73,13 @@ class AlquilerController extends Controller
     {
         $this->authorize('create', Alquiler::class);
 
-        $alquiler = DB::transaction(function () use ($request, $verificador): Alquiler {
+        $lineas = $request->validated('lineas');
+        $mensajeStock = $verificador->mensajeErrorStockLineas($lineas);
+        if ($mensajeStock !== null) {
+            throw ValidationException::withMessages(['lineas' => $mensajeStock]);
+        }
+
+        $alquiler = DB::transaction(function () use ($request, $lineas): Alquiler {
             $inicio = $request->date('fecha_inicio_prevista');
             $fin = $request->date('fecha_fin_prevista');
 
@@ -87,18 +93,9 @@ class AlquilerController extends Controller
                 'notas' => $request->validated('notas') ?? null,
             ]);
 
-            $this->reemplazarLineas($alquiler, $request->validated('lineas'));
+            $this->reemplazarLineas($alquiler, $lineas);
             $alquiler->recalcularTotalDesdeLineas();
             $alquiler->save();
-
-            $alquiler->load('lineas.producto', 'lineas.paquete.productos');
-            $mensajeStock = $verificador->mensajeErrorStockLineas(
-                $request->validated('lineas'),
-                $alquiler->id,
-            );
-            if ($mensajeStock !== null) {
-                throw ValidationException::withMessages(['lineas' => $mensajeStock]);
-            }
 
             return $alquiler;
         });
@@ -342,7 +339,7 @@ class AlquilerController extends Controller
                     'id' => $producto->id,
                     'nombre' => $producto->nombre,
                     'codigo' => $producto->codigo,
-                    'stock_alquiler' => (string) $producto->stock_alquiler,
+                    'stock_alquiler' => (string) (int) (float) $producto->stock_alquiler,
                     'stock_disponible' => $verificador->cantidadDisponibleActiva($producto, $excluirAlquilerId),
                     'precio_alquiler_diario' => (string) $producto->precio_alquiler_diario,
                     'marca_nombre' => $producto->marca?->nombre,
@@ -351,6 +348,7 @@ class AlquilerController extends Controller
                 ->values(),
             'paquetesAlquiler' => Paquete::query()
                 ->where('activo', true)
+                ->whereHas('productos')
                 ->with('productos:id,nombre,codigo')
                 ->orderBy('nombre')
                 ->get()
@@ -359,10 +357,12 @@ class AlquilerController extends Controller
                     'nombre' => $paquete->nombre,
                     'codigo' => $paquete->codigo,
                     'precio_alquiler' => (string) $paquete->precio_alquiler,
+                    'stock_disponible' => $verificador->cantidadDisponiblePaqueteActiva($paquete, $excluirAlquilerId),
                     'productos' => $paquete->productos->map(fn (Producto $p) => [
+                        'id' => $p->id,
                         'nombre' => $p->nombre,
                         'codigo' => $p->codigo,
-                        'cantidad' => (string) $p->pivot->cantidad,
+                        'cantidad' => (string) (int) (float) $p->pivot->cantidad,
                     ])->values(),
                 ])
                 ->values(),

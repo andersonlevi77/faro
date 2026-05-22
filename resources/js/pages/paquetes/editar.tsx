@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { edit, index, update } from '@/routes/paquetes';
+import { edit, index, show, update } from '@/routes/paquetes';
 import type { BreadcrumbItem } from '@/types';
 
 type ProductoOption = { id: number; nombre: string; codigo: string; stock_alquiler: string };
@@ -32,7 +32,7 @@ export default function PaquetesEditar({
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Paquetes', href: index.url() },
-        { title: paquete.nombre, href: edit.url({ paquete: paquete.id }) },
+        { title: paquete.nombre, href: show.url({ paquete: paquete.id }) },
     ];
 
     const productoOptions = productos.map((p) => ({

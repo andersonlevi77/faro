@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, Bell, CalendarClock } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarClock, Package } from 'lucide-react';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,8 @@ import { fechaYmd, fmtFecha } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { calendario } from '@/routes';
 import { index as alquileresIndex, show as alquilerShow } from '@/routes/alquileres';
-import type { AlquilerNotificacionItem, AlquilerNotificaciones } from '@/types';
+import { index as productosIndex } from '@/routes/productos';
+import type { AlquilerNotificacionItem, AlquilerNotificaciones, StockBajoNotificacionItem } from '@/types';
 
 function diasDesdeHoy(fecha: string): number {
     const hoy = new Date();
@@ -39,6 +40,21 @@ function etiquetaPlazo(fecha: string): string {
     }
 
     return `Vence en ${dias} días`;
+}
+
+function StockBajoFila({ producto }: { producto: StockBajoNotificacionItem }) {
+    return (
+        <Link
+            href={productosIndex.url()}
+            className="flex flex-col gap-0.5 rounded-xl border border-amber-300/40 bg-amber-50 px-3 py-2.5 transition-colors hover:bg-amber-100/80 dark:border-amber-800/40 dark:bg-amber-950/30 dark:hover:bg-amber-950/50"
+        >
+            <span className="font-medium text-foreground">{producto.nombre}</span>
+            <span className="text-xs text-muted-foreground">{producto.codigo}</span>
+            <p className="text-xs text-amber-800 dark:text-amber-300">
+                Disponible: {producto.disponible} · Alerta en {producto.stock_minimo} o menos
+            </p>
+        </Link>
+    );
 }
 
 function NotificacionFila({
@@ -80,12 +96,13 @@ export function AlquilerNotifications({
 }: {
     notificaciones: AlquilerNotificaciones;
 }) {
-    const { total, proximos, atrasados, dias_ventana } = notificaciones;
+    const { total, proximos, atrasados, stock_bajo, dias_ventana } = notificaciones;
     const tieneAtrasados = atrasados.length > 0;
+    const tieneStockBajo = stock_bajo.length > 0;
 
     return (
         <DropdownMenu>
-            <IconActionTooltip label="Alquileres por vencer o atrasados">
+            <IconActionTooltip label="Avisos de alquileres y stock bajo">
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant="ghost"
@@ -98,7 +115,7 @@ export function AlquilerNotifications({
                             <span
                                 className={cn(
                                     'absolute -top-0.5 -right-0.5 flex min-w-5 items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold text-white ring-2 ring-card',
-                                    tieneAtrasados ? 'bg-destructive' : 'bg-primary',
+                                    tieneAtrasados ? 'bg-destructive' : tieneStockBajo ? 'bg-amber-500' : 'bg-primary',
                                 )}
                             >
                                 {total > 9 ? '9+' : total}
@@ -111,7 +128,7 @@ export function AlquilerNotifications({
                 <DropdownMenuLabel className="border-b border-border/50 px-4 py-3 font-normal">
                     <p className="text-sm font-semibold text-foreground">Alquileres por atender</p>
                     <p className="text-xs text-muted-foreground">
-                        Activos que vencen en los próximos {dias_ventana} días o ya están atrasados.
+                        Alquileres por vencer, atrasados y productos con stock bajo (solo aviso).
                     </p>
                 </DropdownMenuLabel>
 
@@ -153,6 +170,17 @@ export function AlquilerNotifications({
                                             alquiler={alquiler}
                                             variante="proximo"
                                         />
+                                    ))}
+                                </section>
+                            )}
+                            {stock_bajo.length > 0 && (
+                                <section className="space-y-2">
+                                    <p className="flex items-center gap-1.5 px-1 text-xs font-semibold tracking-wide text-amber-700 uppercase dark:text-amber-400">
+                                        <Package className="size-3.5" />
+                                        Stock bajo ({stock_bajo.length})
+                                    </p>
+                                    {stock_bajo.map((producto) => (
+                                        <StockBajoFila key={producto.id} producto={producto} />
                                     ))}
                                 </section>
                             )}

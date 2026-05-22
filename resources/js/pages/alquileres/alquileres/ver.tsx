@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fmtFecha, fmtFechaHora, fmtRangoFechas } from '@/lib/dates';
 import { badgeEstadoAlquiler, dotEstadoAlquiler } from '@/lib/estado-alquiler';
-import { cn, fmtQ } from '@/lib/utils';
+import { cn, etiquetaOpcion, fmtQ } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -410,8 +410,8 @@ export default function AlquileresVer({
                                     <tbody>
                                         {alquiler.pagos.map((p) => (
                                             <tr key={p.id} className="border-b border-border/30">
-                                                <td className="px-4 py-2 capitalize">{p.tipo.replace('_', ' ')}</td>
-                                                <td className="px-4 py-2 capitalize">{p.metodo_pago.replace('_', ' ')}</td>
+                                                <td className="px-4 py-2">{etiquetaOpcion(tiposPago, p.tipo)}</td>
+                                                <td className="px-4 py-2">{etiquetaOpcion(metodosPago, p.metodo_pago)}</td>
                                                 <td className="px-4 py-2 text-right tabular-nums">{fmtQ(p.monto)}</td>
                                                 <td className="px-4 py-2 text-muted-foreground">{p.notas ?? '—'}</td>
                                                 <td className="px-4 py-2 text-muted-foreground">{p.registrado_por?.name ?? '—'}</td>

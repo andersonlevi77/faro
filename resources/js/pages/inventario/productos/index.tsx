@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Package, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, Package, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
-import { create, destroy, edit, index } from '@/routes/productos';
+import { create, destroy, edit, index, show } from '@/routes/productos';
 import type { BreadcrumbItem } from '@/types';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
@@ -108,18 +108,19 @@ export default function ProductosIndex({
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Código</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Nombre</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Categoría</th>
+                                        <th className="px-4 py-3 text-left font-medium text-foreground">Marca</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Precio / día</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Stock total</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Disponible ahora</th>
                                         <th className="px-4 py-3 text-left font-medium text-foreground">Estado</th>
-                                        <th className="w-[120px] px-4 py-3 text-left font-medium text-foreground">Acciones</th>
+                                        <th className="w-[140px] px-4 py-3 text-left font-medium text-foreground">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {productos.data.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan={8}
+                                                colSpan={9}
                                                 className="px-4 py-10 text-center text-muted-foreground"
                                             >
                                                 No hay productos. Crea el primero desde «Nuevo producto».
@@ -132,24 +133,37 @@ export default function ProductosIndex({
                                                 className="border-b border-border/30 last:border-0 transition-colors hover:bg-muted/25"
                                             >
                                                 <td className="px-4 py-3 font-mono text-muted-foreground">{p.codigo}</td>
-                                                <td className="px-4 py-3 font-medium text-foreground">{p.nombre}</td>
+                                                <td className="px-4 py-3 font-medium text-foreground">
+                                                    <Link
+                                                        href={show.url({ producto: p.id })}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {p.nombre}
+                                                    </Link>
+                                                </td>
                                                 <td className="px-4 py-3 text-muted-foreground">{p.categoria?.nombre ?? '—'}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">{p.marca?.nombre ?? '—'}</td>
                                                 <td className="px-4 py-3 tabular-nums text-foreground">
                                                     {p.precio_alquiler_diario ? fmtQ(p.precio_alquiler_diario) : '—'}
                                                 </td>
                                                 <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                                                    {p.stock_alquiler}
+                                                    {parseInt(String(p.stock_alquiler), 10) || p.stock_alquiler}
                                                 </td>
                                                 <td className="px-4 py-3 tabular-nums">
                                                     <span
                                                         className={
-                                                            parseFloat(p.disponibilidad_actual ?? p.stock_alquiler) <=
-                                                            0
+                                                            parseInt(
+                                                                String(p.disponibilidad_actual ?? p.stock_alquiler),
+                                                                10,
+                                                            ) <= 0
                                                                 ? 'font-medium text-destructive'
                                                                 : 'font-medium text-primary'
                                                         }
                                                     >
-                                                        {p.disponibilidad_actual ?? p.stock_alquiler}
+                                                        {parseInt(
+                                                            String(p.disponibilidad_actual ?? p.stock_alquiler),
+                                                            10,
+                                                        ) || p.disponibilidad_actual}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -165,6 +179,13 @@ export default function ProductosIndex({
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex gap-1">
+                                                        <IconActionTooltip label="Ver detalle">
+                                                            <Button variant="ghost" size="icon" className="size-8 rounded-md hover:bg-accent" asChild>
+                                                                <Link href={show.url({ producto: p.id })}>
+                                                                    <Eye className="size-4" />
+                                                                </Link>
+                                                            </Button>
+                                                        </IconActionTooltip>
                                                         <IconActionTooltip label="Editar producto">
                                                             <Button variant="ghost" size="icon" className="size-8 rounded-md hover:bg-accent" asChild>
                                                                 <Link href={edit.url({ producto: p.id })}>

@@ -47,8 +47,8 @@ export function ProductoAlquilerFields<T extends FormData>({
                     <Input
                         id="stock_alquiler"
                         type="number"
-                        step="0.001"
-                        min="0"
+                        step={1}
+                        min={0}
                         value={data.stock_alquiler}
                         onChange={(e) => setData('stock_alquiler', e.target.value as T[keyof T])}
                         required

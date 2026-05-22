@@ -130,6 +130,7 @@ export default function AlquileresIndex({
                                         <th className="px-4 py-3 text-left font-medium">Cliente</th>
                                         <th className="px-4 py-3 text-left font-medium">Estado</th>
                                         <th className="px-4 py-3 text-left font-medium">Período</th>
+                                        <th className="px-4 py-3 text-center font-medium">Líneas</th>
                                         <th className="px-4 py-3 text-right font-medium">Total</th>
                                         <th className="px-4 py-3 text-right font-medium">Saldo</th>
                                         <th className="w-[90px] px-4 py-3 text-left font-medium">Acciones</th>
@@ -138,7 +139,7 @@ export default function AlquileresIndex({
                                 <tbody>
                                     {alquileres.data.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                                            <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                                                 No hay alquileres. Crea uno nuevo.
                                             </td>
                                         </tr>
@@ -147,7 +148,14 @@ export default function AlquileresIndex({
                                             const saldo = parseFloat(saldos[a.id] ?? '0');
                                             return (
                                                 <tr key={a.id} className="border-b border-border/30">
-                                                    <td className="px-4 py-3 font-mono text-xs font-medium">{a.codigo}</td>
+                                                    <td className="px-4 py-3 font-mono text-xs font-medium">
+                                                        <Link
+                                                            href={show.url({ alquiler: a.id })}
+                                                            className="text-primary hover:underline"
+                                                        >
+                                                            {a.codigo}
+                                                        </Link>
+                                                    </td>
                                                     <td className="px-4 py-3">{a.cliente?.nombre ?? '—'}</td>
                                                     <td className="px-4 py-3">
                                                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${ESTADO_COLOR[a.estado] ?? ''}`}>
@@ -156,6 +164,9 @@ export default function AlquileresIndex({
                                                     </td>
                                                     <td className="px-4 py-3 text-muted-foreground">
                                                         {fmtRangoFechas(a.fecha_inicio_prevista, a.fecha_fin_prevista)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">
+                                                        {a.lineas_count}
                                                     </td>
                                                     <td className="px-4 py-3 text-right tabular-nums">{fmtQ(a.total)}</td>
                                                     <td className="px-4 py-3 text-right tabular-nums">

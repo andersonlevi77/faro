@@ -6,6 +6,7 @@ use App\Http\Requests\StorePaqueteRequest;
 use App\Http\Requests\UpdatePaqueteRequest;
 use App\Models\Paquete;
 use App\Models\Producto;
+use App\Services\VerificadorDisponibilidadAlquiler;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -15,12 +16,13 @@ use Inertia\Response;
 
 class PaqueteController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, VerificadorDisponibilidadAlquiler $verificador): Response
     {
         $this->authorize('viewAny', Paquete::class);
 
         $paquetes = Paquete::query()
-            ->withCount('productos')
+            ->with('productos:id,nombre,codigo')
+            ->withCount(['productos', 'alquilerLineas'])
             ->when($request->filled('buscar'), fn ($q) => $q->where(function ($inner) use ($request): void {
                 $b = '%'.$request->string('buscar').'%';
                 $inner->where('nombre', 'like', $b)->orWhere('codigo', 'like', $b);
@@ -28,6 +30,15 @@ class PaqueteController extends Controller
             ->latest()
             ->paginate(15)
             ->withQueryString();
+
+        $paquetes->through(function (Paquete $paquete) use ($verificador): Paquete {
+            $paquete->setAttribute(
+                'stock_disponible',
+                $verificador->cantidadDisponiblePaqueteActiva($paquete),
+            );
+
+            return $paquete;
+        });
 
         return Inertia::render('paquetes/index', [
             'paquetes' => $paquetes,
@@ -63,6 +74,35 @@ class PaqueteController extends Controller
         });
 
         return to_route('paquetes.index')->with('success', 'Paquete creado correctamente.');
+    }
+
+    public function show(Paquete $paquete, VerificadorDisponibilidadAlquiler $verificador): Response
+    {
+        $this->authorize('view', $paquete);
+
+        $paquete->load('productos');
+
+        return Inertia::render('paquetes/ver', [
+            'paquete' => [
+                'id' => $paquete->id,
+                'nombre' => $paquete->nombre,
+                'codigo' => $paquete->codigo,
+                'descripcion' => $paquete->descripcion,
+                'precio_alquiler' => (string) $paquete->precio_alquiler,
+                'activo' => $paquete->activo,
+                'created_at' => $paquete->created_at?->toIso8601String(),
+                'updated_at' => $paquete->updated_at?->toIso8601String(),
+                'stock_disponible' => $verificador->cantidadDisponiblePaqueteActiva($paquete),
+                'alquileres_count' => $paquete->alquilerLineas()->count(),
+                'productos' => $paquete->productos->map(fn (Producto $p) => [
+                    'id' => $p->id,
+                    'nombre' => $p->nombre,
+                    'codigo' => $p->codigo,
+                    'cantidad' => (string) (int) (float) $p->pivot->cantidad,
+                    'stock_disponible' => $verificador->cantidadDisponibleActiva($p),
+                ])->values(),
+            ],
+        ]);
     }
 
     public function edit(Paquete $paquete): Response

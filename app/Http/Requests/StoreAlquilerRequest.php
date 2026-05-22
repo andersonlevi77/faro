@@ -28,7 +28,7 @@ class StoreAlquilerRequest extends FormRequest
             'lineas' => ['required', 'array', 'min:1'],
             'lineas.*.producto_id' => ['nullable', 'exists:productos,id'],
             'lineas.*.paquete_id' => ['nullable', 'exists:paquetes,id'],
-            'lineas.*.cantidad' => ['required', 'numeric', 'min:0.001'],
+            'lineas.*.cantidad' => ['required', 'integer', 'min:1'],
             'lineas.*.precio_diario' => ['nullable', 'numeric', 'min:0'],
         ];
     }

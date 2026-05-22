@@ -31,10 +31,8 @@ class ProductoController extends Controller
             ->withQueryString();
 
         $productos->through(function (Producto $producto) use ($verificador): Producto {
-            $producto->setAttribute(
-                'disponibilidad_actual',
-                $verificador->cantidadDisponibleActiva($producto),
-            );
+            $producto->setAttribute('disponibilidad_actual', $verificador->cantidadDisponibleActiva($producto));
+            $producto->setAttribute('stock_alquiler', (string) (int) (float) $producto->stock_alquiler);
 
             return $producto;
         });

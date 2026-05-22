@@ -88,6 +88,6 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        return (new ConsultaAlquileresNotificaciones)->paraCompartir();
+        return app(ConsultaAlquileresNotificaciones::class)->paraCompartir();
     }
 }

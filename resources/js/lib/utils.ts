@@ -15,3 +15,10 @@ export function fmtQ(value: string | number): string {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     return `Q ${isNaN(num) ? '0.00' : num.toFixed(2)}`;
 }
+
+export function etiquetaOpcion(
+    opciones: { value: string; label: string }[],
+    value: string,
+): string {
+    return opciones.find((o) => o.value === value)?.label ?? value.replaceAll('_', ' ');
+}

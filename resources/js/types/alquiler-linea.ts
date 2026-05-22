@@ -1,3 +1,12 @@
+export type PaqueteAlquilerSource = {
+    id: number;
+    nombre: string;
+    codigo: string;
+    precio_alquiler: string;
+    stock_disponible: string;
+    productos: { id: number; nombre: string; codigo: string; cantidad: string }[];
+};
+
 export type AlquilerLineaForm = {
     producto_id: number | '';
     paquete_id: number | '';

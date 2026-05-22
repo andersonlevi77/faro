@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 class ConsultaAlquileresNotificaciones
 {
     public function __construct(
+        private ConsultaStockBajoNotificaciones $stockBajoNotificaciones,
         private int $diasVentana = 7,
         private int $limite = 12,
     ) {}
@@ -73,11 +74,14 @@ class ConsultaAlquileresNotificaciones
             ->values()
             ->all();
 
+        $stockBajo = $this->stockBajoNotificaciones->paraCompartir();
+
         return [
             'dias_ventana' => $this->diasVentana,
-            'total' => count($proximos) + count($atrasados),
+            'total' => count($proximos) + count($atrasados) + count($stockBajo),
             'proximos' => $proximos,
             'atrasados' => $atrasados,
+            'stock_bajo' => $stockBajo,
         ];
     }
 

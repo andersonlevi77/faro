@@ -2,17 +2,13 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useMemo } from 'react';
 import InputError from '@/components/input-error';
-import { AlquilerLineasEditor } from '@/components/alquiler-lineas-editor';
+import { AlquilerEquiposSection } from '@/components/alquiler-equipos-section';
 import { SearchableCombobox } from '@/components/searchable-combobox';
-import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import {
-    type PaqueteAlquilerSource,
-} from '@/components/alquiler-lineas-editor';
 import {
     clienteComboboxOptions,
     type ClienteComboboxSource,
@@ -21,7 +17,7 @@ import {
 import { diasContratoPrevistos, totalAlquilerEstimadoDesdeLineas } from '@/lib/alquiler-totales';
 import { fmtQ } from '@/lib/utils';
 import { create, index, store } from '@/routes/alquileres';
-import { emptyAlquilerLinea } from '@/types/alquiler-linea';
+import type { AlquilerLineaForm, PaqueteAlquilerSource } from '@/types/alquiler-linea';
 import type { BreadcrumbItem } from '@/types';
 
 export default function AlquileresCrear({
@@ -39,15 +35,13 @@ export default function AlquileresCrear({
         { title: 'Nuevo', href: create.url() },
     ];
 
-    const { confirm, dialog } = useConfirmDialog();
-
     const { data, setData, post, processing, errors } = useForm({
         cliente_id: '' as number | '',
         fecha_inicio_prevista: '',
         fecha_fin_prevista: '',
         deposito_monto: '',
         notas: '',
-        lineas: [emptyAlquilerLinea()],
+        lineas: [] as AlquilerLineaForm[],
     });
 
     const productoPrecioMap = useMemo(() => {
@@ -57,6 +51,14 @@ export default function AlquileresCrear({
         }
         return m;
     }, [productosAlquiler]);
+
+    const paquetePrecioMap = useMemo(() => {
+        const m = new Map<number, string>();
+        for (const p of paquetesAlquiler) {
+            m.set(p.id, p.precio_alquiler);
+        }
+        return m;
+    }, [paquetesAlquiler]);
 
     const diasContrato = useMemo(
         () => diasContratoPrevistos(data.fecha_inicio_prevista, data.fecha_fin_prevista),
@@ -70,8 +72,9 @@ export default function AlquileresCrear({
                 data.fecha_fin_prevista,
                 data.lineas,
                 productoPrecioMap,
+                paquetePrecioMap,
             ),
-        [data.fecha_inicio_prevista, data.fecha_fin_prevista, data.lineas, productoPrecioMap],
+        [data.fecha_inicio_prevista, data.fecha_fin_prevista, data.lineas, productoPrecioMap, paquetePrecioMap],
     );
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -81,7 +84,6 @@ export default function AlquileresCrear({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            {dialog}
             <Head title="Nuevo alquiler" />
             <div className="faro-page">
                 <div className="flex items-center gap-3">
@@ -158,21 +160,12 @@ export default function AlquileresCrear({
                         </div>
                     </div>
 
-                    <AlquilerLineasEditor
+                    <AlquilerEquiposSection
                         lineas={data.lineas}
                         onLineasChange={(lineas) => setData('lineas', lineas)}
                         productosAlquiler={productosAlquiler}
                         paquetesAlquiler={paquetesAlquiler}
                         errors={errors as Record<string, string>}
-                        onConfirmRemove={(_idx, onConfirm) =>
-                            confirm({
-                                title: '¿Quitar esta línea?',
-                                description: 'La línea se eliminará antes de guardar.',
-                                confirmLabel: 'Quitar línea',
-                                variant: 'destructive',
-                                onConfirm,
-                            })
-                        }
                     />
 
                     <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-4 shadow-sm">

@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useMemo } from 'react';
 import InputError from '@/components/input-error';
-import { AlquilerLineasEditor } from '@/components/alquiler-lineas-editor';
+import { AlquilerEquiposSection } from '@/components/alquiler-equipos-section';
 import { SearchableCombobox } from '@/components/searchable-combobox';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
@@ -10,9 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import {
-    type PaqueteAlquilerSource,
-} from '@/components/alquiler-lineas-editor';
+import type { PaqueteAlquilerSource } from '@/types/alquiler-linea';
 import {
     clienteComboboxOptions,
     type ClienteComboboxSource,
@@ -83,6 +81,14 @@ export default function AlquileresEditar({
         return m;
     }, [productosAlquiler]);
 
+    const paquetePrecioMap = useMemo(() => {
+        const m = new Map<number, string>();
+        for (const p of paquetesAlquiler) {
+            m.set(p.id, p.precio_alquiler);
+        }
+        return m;
+    }, [paquetesAlquiler]);
+
     const diasContrato = useMemo(
         () => diasContratoPrevistos(data.fecha_inicio_prevista, data.fecha_fin_prevista),
         [data.fecha_inicio_prevista, data.fecha_fin_prevista],
@@ -95,8 +101,9 @@ export default function AlquileresEditar({
                 data.fecha_fin_prevista,
                 data.lineas,
                 productoPrecioMap,
+                paquetePrecioMap,
             ),
-        [data.fecha_inicio_prevista, data.fecha_fin_prevista, data.lineas, productoPrecioMap],
+        [data.fecha_inicio_prevista, data.fecha_fin_prevista, data.lineas, productoPrecioMap, paquetePrecioMap],
     );
 
     const eliminarAlquiler = () => {
@@ -196,22 +203,12 @@ export default function AlquileresEditar({
                         </div>
                     </div>
 
-                    <AlquilerLineasEditor
+                    <AlquilerEquiposSection
                         lineas={data.lineas}
                         onLineasChange={(lineas) => setData('lineas', lineas)}
                         productosAlquiler={productosAlquiler}
                         paquetesAlquiler={paquetesAlquiler}
                         errors={errors as Record<string, string>}
-                        onConfirmRemove={(_idx, onConfirm) =>
-                            confirm({
-                                title: '¿Quitar esta línea?',
-                                description:
-                                    'La línea se eliminará. Debes guardar para aplicar el cambio.',
-                                confirmLabel: 'Quitar línea',
-                                variant: 'destructive',
-                                onConfirm,
-                            })
-                        }
                     />
 
                     <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-4 shadow-sm">

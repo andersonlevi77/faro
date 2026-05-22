@@ -5,6 +5,7 @@ use App\Models\Alquiler;
 use App\Models\Categoria;
 use App\Models\Cliente;
 use App\Models\Marca;
+use App\Models\Paquete;
 use App\Models\Presentacion;
 use App\Models\Producto;
 use App\Models\User;
@@ -177,6 +178,134 @@ test('no se puede crear alquiler si no hay stock suficiente', function () {
     expect(Alquiler::query()->count())->toBe(0);
 });
 
+test('se puede crear alquiler con linea de paquete validando disponibilidad', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $producto = Producto::factory()->create([
+        'es_alquilable' => true,
+        'stock_alquiler' => '10',
+        'precio_alquiler_diario' => '50.00',
+        'activo' => true,
+    ]);
+
+    $paquete = Paquete::factory()->create([
+        'precio_alquiler' => '200.00',
+        'activo' => true,
+    ]);
+    $paquete->productos()->attach($producto->id, ['cantidad' => 2]);
+
+    $cliente = Cliente::factory()->create();
+    $inicio = now()->addDay()->toDateString();
+    $fin = now()->addDays(2)->toDateString();
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['paquete_id' => $paquete->id, 'cantidad' => 3],
+        ],
+    ])->assertRedirect();
+
+    $alquiler = Alquiler::query()->firstOrFail();
+    $linea = $alquiler->lineas()->firstOrFail();
+
+    expect($linea->paquete_id)->toBe($paquete->id);
+    expect($linea->producto_id)->toBeNull();
+    expect((float) $linea->cantidad)->toBe(3.0);
+    expect((float) $linea->precio_diario)->toBe(200.0);
+});
+
+test('rechaza alquiler de paquete si supera disponibilidad de productos del kit', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $producto = Producto::factory()->create([
+        'es_alquilable' => true,
+        'stock_alquiler' => '10',
+        'precio_alquiler_diario' => '50.00',
+        'activo' => true,
+    ]);
+
+    $paquete = Paquete::factory()->create(['activo' => true]);
+    $paquete->productos()->attach($producto->id, ['cantidad' => 2]);
+
+    $cliente = Cliente::factory()->create();
+    $inicio = now()->addDay()->toDateString();
+    $fin = now()->addDays(2)->toDateString();
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['paquete_id' => $paquete->id, 'cantidad' => 6],
+        ],
+    ])->assertSessionHasErrors('lineas');
+
+    expect(Alquiler::query()->count())->toBe(0);
+});
+
+test('rechaza alquiler si paquete y producto sueltos superan el mismo stock', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $producto = Producto::factory()->create([
+        'es_alquilable' => true,
+        'stock_alquiler' => '10',
+        'precio_alquiler_diario' => '50.00',
+        'activo' => true,
+    ]);
+
+    $paquete = Paquete::factory()->create(['activo' => true]);
+    $paquete->productos()->attach($producto->id, ['cantidad' => 2]);
+
+    $cliente = Cliente::factory()->create();
+    $inicio = now()->addDay()->toDateString();
+    $fin = now()->addDays(2)->toDateString();
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['paquete_id' => $paquete->id, 'cantidad' => 4],
+            ['producto_id' => $producto->id, 'cantidad' => 3],
+        ],
+    ])->assertSessionHasErrors('lineas');
+
+    expect(Alquiler::query()->count())->toBe(0);
+});
+
+test('la alerta de stock minimo no restringe alquileres solo notifica', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $producto = Producto::factory()->create([
+        'es_alquilable' => true,
+        'stock_alquiler' => '10',
+        'stock_minimo' => 2,
+        'precio_alquiler_diario' => '100.00',
+        'activo' => true,
+    ]);
+
+    $cliente = Cliente::factory()->create();
+    $inicio = now()->addDay()->toDateString();
+    $fin = now()->addDays(3)->toDateString();
+
+    $this->post(route('alquileres.store'), [
+        'cliente_id' => $cliente->id,
+        'fecha_inicio_prevista' => $inicio,
+        'fecha_fin_prevista' => $fin,
+        'lineas' => [
+            ['producto_id' => $producto->id, 'cantidad' => 9],
+        ],
+    ])->assertRedirect();
+
+    expect(app(VerificadorDisponibilidadAlquiler::class)->cantidadDisponibleActiva($producto->fresh()))->toBe('1');
+});
+
 test('disponibilidad actual resta unidades en alquileres creado y entregado', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
@@ -207,7 +336,7 @@ test('disponibilidad actual resta unidades en alquileres creado y entregado', fu
     ])->assertRedirect();
 
     $verificador = app(VerificadorDisponibilidadAlquiler::class);
-    expect($verificador->cantidadDisponibleActiva($producto->fresh()))->toBe('20.000');
+    expect($verificador->cantidadDisponibleActiva($producto->fresh()))->toBe('20');
 
     $this->post(route('alquileres.store'), [
         'cliente_id' => $cliente->id,
