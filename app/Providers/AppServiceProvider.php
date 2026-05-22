@@ -46,6 +46,12 @@ class AppServiceProvider extends ServiceProvider
 
         URL::forceScheme('https');
 
+        // Wayfinder lee forcedRoot al generar rutas (npm run build / artisan).
+        // En Docker no hay .env y APP_URL cae en localhost; eso produce https://localhost/... en el bundle.
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
         if ($appUrl = config('app.url')) {
             URL::forceRootUrl($appUrl);
         }
