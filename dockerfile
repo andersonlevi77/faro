@@ -84,4 +84,6 @@ EXPOSE 10000
 CMD php artisan optimize:clear && \
     php artisan migrate --force && \
     php artisan db:seed --class=RenderSeeder --force && \
+    chown -R www-data:www-data storage bootstrap/cache && \
+    chmod -R 775 storage bootstrap/cache && \
     /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
