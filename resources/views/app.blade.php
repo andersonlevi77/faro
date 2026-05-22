@@ -19,7 +19,7 @@
         <style>
             html {
                 background-color: oklch(1 0 0);
-                font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+                font-family: ui-sans-serif, system-ui, sans-serif;
             }
 
             html.dark {
@@ -27,7 +27,7 @@
             }
 
             body {
-                font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+                font-family: ui-sans-serif, system-ui, sans-serif;
             }
         </style>
 
@@ -37,10 +37,9 @@
         <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
 
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=poppins:300,400,500,600&display=swap" rel="stylesheet" />
-
-        @viteReactRefresh
+        @env('local')
+            @viteReactRefresh
+        @endenv
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead
     </head>

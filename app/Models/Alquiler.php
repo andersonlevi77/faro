@@ -149,12 +149,20 @@ class Alquiler extends Model
     /** Total cobrado al cliente (ingresos). */
     public function totalCobrado(): string
     {
-        $sum = $this->pagos()
-            ->whereIn('tipo', array_map(
-                fn (TipoPago $t) => $t->value,
-                array_filter(TipoPago::cases(), fn (TipoPago $t) => $t->esIngreso()),
-            ))
-            ->sum('monto');
+        $tiposIngreso = array_map(
+            fn (TipoPago $t) => $t->value,
+            array_filter(TipoPago::cases(), fn (TipoPago $t) => $t->esIngreso()),
+        );
+
+        if ($this->relationLoaded('pagos')) {
+            $sum = $this->pagos
+                ->whereIn('tipo', $tiposIngreso)
+                ->sum(fn ($pago) => (float) $pago->monto);
+        } else {
+            $sum = $this->pagos()
+                ->whereIn('tipo', $tiposIngreso)
+                ->sum('monto');
+        }
 
         return number_format((float) $sum, 2, '.', '');
     }

@@ -5,8 +5,8 @@ namespace App\Http\Middleware;
 use App\Services\ConsultaAlquileresNotificaciones;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Inertia\Middleware;
 use Inertia\Inertia;
+use Inertia\Middleware;
 use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
@@ -66,9 +66,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
-                'permissions' => $request->user()
-                    ? $request->user()->getAllPermissions()->pluck('name')->values()->all()
-                    : [],
+                'permissions' => fn () => $this->userPermissions($request),
                 'roles' => $request->user()
                     ? $request->user()->getRoleNames()->values()->all()
                     : [],
@@ -76,6 +74,24 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'alquilerNotificaciones' => fn () => $this->alquilerNotificaciones($request),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function userPermissions(Request $request): array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return [];
+        }
+
+        return Cache::remember(
+            'user-permissions:'.$user->id,
+            now()->addMinutes(10),
+            fn () => $user->getAllPermissions()->pluck('name')->values()->all(),
+        );
     }
 
     /**

@@ -21,11 +21,7 @@ export default defineConfig({
                 'resources/js/layouts/**',
             ],
         }),
-        react({
-            babel: {
-                plugins: ['babel-plugin-react-compiler'],
-            },
-        }),
+        react(),
         tailwindcss(),
         wayfinder({
             formVariants: true,

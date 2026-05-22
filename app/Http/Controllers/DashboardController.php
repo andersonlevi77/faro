@@ -41,11 +41,13 @@ class DashboardController extends Controller
             '',
         );
 
+        $alquileresConSaldo = Alquiler::query()
+            ->whereIn('estado', $estadosActivos)
+            ->with(['pagos:id,alquiler_id,tipo,monto'])
+            ->get(['id', 'total', 'deposito_monto']);
+
         $saldoPendienteTotal = number_format(
-            (float) Alquiler::query()
-                ->whereIn('estado', $estadosActivos)
-                ->get(['id', 'total', 'deposito_monto'])
-                ->sum(fn (Alquiler $a) => (float) $a->saldoPendiente()),
+            (float) $alquileresConSaldo->sum(fn (Alquiler $a) => (float) $a->saldoPendiente()),
             2,
             '.',
             '',
