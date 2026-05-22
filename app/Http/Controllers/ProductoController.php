@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\EstadoUnidad;
 use App\Enums\TrackingMode;
+use App\Http\Concerns\SortsPaginatedIndex;
 use App\Http\Requests\StoreProductoRequest;
 use App\Http\Requests\UpdateProductoRequest;
 use App\Models\Categoria;
@@ -18,17 +19,28 @@ use Inertia\Response;
 
 class ProductoController extends Controller
 {
+    use SortsPaginatedIndex;
+
     public function index(Request $request, VerificadorDisponibilidadAlquiler $verificador): Response
     {
         $this->authorize('viewAny', Producto::class);
 
-        $productos = Producto::query()
+        $query = Producto::query()
             ->with(['categoria', 'marca', 'presentacion'])
             ->when($request->filled('buscar'), fn ($q) => $q->where('nombre', 'like', '%'.$request->buscar.'%')
-                ->orWhere('codigo', 'like', '%'.$request->buscar.'%'))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+                ->orWhere('codigo', 'like', '%'.$request->buscar.'%'));
+
+        $this->applyIndexSort($query, $request, [
+            'codigo' => 'codigo',
+            'nombre' => 'nombre',
+            'categoria' => 'categoria_id',
+            'marca' => 'marca_id',
+            'precio_alquiler_diario' => 'precio_alquiler_diario',
+            'stock_alquiler' => 'stock_alquiler',
+            'activo' => 'activo',
+        ], 'nombre', 'asc');
+
+        $productos = $query->paginate(15)->withQueryString();
 
         $productos->through(function (Producto $producto) use ($verificador): Producto {
             $producto->setAttribute('disponibilidad_actual', $verificador->cantidadDisponibleActiva($producto));
@@ -39,7 +51,10 @@ class ProductoController extends Controller
 
         return Inertia::render('inventario/productos/index', [
             'productos' => $productos,
-            'filters' => $request->only(['buscar']),
+            'filters' => array_merge(
+                $request->only(['buscar']),
+                $this->indexSortFilters($request),
+            ),
         ]);
     }
 

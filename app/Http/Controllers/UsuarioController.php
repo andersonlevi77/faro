@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\SortsPaginatedIndex;
 use App\Http\Requests\StoreUsuarioRequest;
 use App\Http\Requests\UpdateUsuarioActivoRequest;
 use App\Http\Requests\UpdateUsuarioRolesRequest;
@@ -16,25 +17,35 @@ use Spatie\Permission\PermissionRegistrar;
 
 class UsuarioController extends Controller
 {
+    use SortsPaginatedIndex;
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', User::class);
 
-        $usuarios = User::query()
+        $query = User::query()
             ->with('roles')
             ->when($request->filled('buscar'), function ($q) use ($request): void {
                 $b = '%'.$request->string('buscar').'%';
                 $q->where(function ($inner) use ($b): void {
                     $inner->where('name', 'like', $b)->orWhere('email', 'like', $b);
                 });
-            })
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            });
+
+        $this->applyIndexSort($query, $request, [
+            'name' => 'name',
+            'email' => 'email',
+            'activo' => 'activo',
+        ], 'name', 'asc');
+
+        $usuarios = $query->paginate(15)->withQueryString();
 
         return Inertia::render('usuarios/index', [
             'usuarios' => $usuarios,
-            'filters' => $request->only(['buscar']),
+            'filters' => array_merge(
+                $request->only(['buscar']),
+                $this->indexSortFilters($request),
+            ),
         ]);
     }
 

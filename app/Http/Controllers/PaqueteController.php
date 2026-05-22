@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\SortsPaginatedIndex;
 use App\Http\Requests\StorePaqueteRequest;
 use App\Http\Requests\UpdatePaqueteRequest;
 use App\Models\Paquete;
@@ -16,20 +17,31 @@ use Inertia\Response;
 
 class PaqueteController extends Controller
 {
+    use SortsPaginatedIndex;
+
     public function index(Request $request, VerificadorDisponibilidadAlquiler $verificador): Response
     {
         $this->authorize('viewAny', Paquete::class);
 
-        $paquetes = Paquete::query()
+        $query = Paquete::query()
             ->with('productos:id,nombre,codigo')
             ->withCount(['productos', 'alquilerLineas'])
             ->when($request->filled('buscar'), fn ($q) => $q->where(function ($inner) use ($request): void {
                 $b = '%'.$request->string('buscar').'%';
                 $inner->where('nombre', 'like', $b)->orWhere('codigo', 'like', $b);
-            }))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            }));
+
+        $this->applyIndexSort($query, $request, [
+            'codigo' => 'codigo',
+            'nombre' => 'nombre',
+            'descripcion' => 'descripcion',
+            'productos' => 'productos_count',
+            'precio_alquiler' => 'precio_alquiler',
+            'activo' => 'activo',
+            'alquileres' => 'alquiler_lineas_count',
+        ], 'nombre', 'asc');
+
+        $paquetes = $query->paginate(15)->withQueryString();
 
         $paquetes->through(function (Paquete $paquete) use ($verificador): Paquete {
             $paquete->setAttribute(
@@ -42,7 +54,10 @@ class PaqueteController extends Controller
 
         return Inertia::render('paquetes/index', [
             'paquetes' => $paquetes,
-            'filters' => $request->only(['buscar']),
+            'filters' => array_merge(
+                $request->only(['buscar']),
+                $this->indexSortFilters($request),
+            ),
         ]);
     }
 

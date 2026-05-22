@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\SortsPaginatedIndex;
 use App\Http\Requests\StoreClienteRequest;
 use App\Http\Requests\UpdateClienteRequest;
 use App\Models\Cliente;
@@ -12,11 +13,13 @@ use Inertia\Response;
 
 class ClienteController extends Controller
 {
+    use SortsPaginatedIndex;
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Cliente::class);
 
-        $clientes = Cliente::query()
+        $query = Cliente::query()
             ->withCount('alquileres')
             ->when($request->filled('buscar'), function ($query) use ($request): void {
                 $b = '%'.$request->string('buscar').'%';
@@ -26,10 +29,17 @@ class ClienteController extends Controller
                         ->orWhere('email', 'like', $b)
                         ->orWhere('telefono', 'like', $b);
                 });
-            })
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            });
+
+        $this->applyIndexSort($query, $request, [
+            'nombre' => 'nombre',
+            'documento' => 'documento',
+            'email' => 'email',
+            'telefono' => 'telefono',
+            'alquileres' => 'alquileres_count',
+        ], 'nombre', 'asc');
+
+        $clientes = $query->paginate(15)->withQueryString();
 
         // Eager-load alquileres + pagos to avoid N+1 on puntuacion()
         $clientes->getCollection()->load(['alquileres.pagos:id,alquiler_id,tipo,monto']);
@@ -41,7 +51,10 @@ class ClienteController extends Controller
 
         return Inertia::render('alquileres/clientes/index', [
             'clientes' => $clientes,
-            'filters' => $request->only(['buscar']),
+            'filters' => array_merge(
+                $request->only(['buscar']),
+                $this->indexSortFilters($request),
+            ),
             'puntajes' => $puntajes,
         ]);
     }

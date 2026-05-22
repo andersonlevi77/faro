@@ -3,12 +3,14 @@ import { Eye, Package, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { create, destroy, edit, index, show } from '@/routes/productos';
 import type { BreadcrumbItem } from '@/types';
+import { FaroDataTable, type FaroColumnDef } from '@/components/faro-data-table';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fmtQ } from '@/lib/utils';
+import type { LaravelPaginator, TableSortState } from '@/types/pagination';
 
 interface Producto {
     id: number;
@@ -23,21 +25,12 @@ interface Producto {
     presentacion?: { id: number; nombre: string } | null;
 }
 
-interface PaginatedProductos {
-    data: Producto[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    links: { url: string | null; label: string; active: boolean }[];
-}
-
 export default function ProductosIndex({
     productos,
     filters,
 }: {
-    productos: PaginatedProductos;
-    filters: { buscar?: string };
+    productos: LaravelPaginator<Producto>;
+    filters: { buscar?: string } & TableSortState;
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Inventario', href: index.url() },
@@ -49,17 +42,152 @@ export default function ProductosIndex({
         e.preventDefault();
         const form = e.currentTarget;
         const buscar = (form.elements.namedItem('buscar') as HTMLInputElement)?.value;
-        router.get(index.url(), { buscar: buscar || undefined }, { preserveState: true });
+        router.get(
+            index.url(),
+            { buscar: buscar || undefined, sort: filters.sort, direction: filters.direction },
+            { preserveState: true },
+        );
     };
 
-    const handleDestroy = (id: number) => {
-        confirm({
-            title: '¿Eliminar este producto?',
-            description: 'Se eliminará el producto del inventario. Esta acción no se puede deshacer.',
-            confirmLabel: 'Eliminar producto',
-            onConfirm: () => router.delete(destroy.url({ producto: id })),
-        });
-    };
+    const columns: FaroColumnDef<Producto>[] = [
+        {
+            id: 'codigo',
+            label: 'Código',
+            tooltip: 'Identificador interno del producto.',
+            sortable: true,
+            sortKey: 'codigo',
+            cell: (p) => <span className="font-mono text-xs text-muted-foreground">{p.codigo}</span>,
+        },
+        {
+            id: 'nombre',
+            label: 'Nombre',
+            tooltip: 'Nombre del artículo en el catálogo.',
+            sortable: true,
+            sortKey: 'nombre',
+            cell: (p) => (
+                <Link href={show.url({ producto: p.id })} className="font-medium text-primary hover:underline">
+                    {p.nombre}
+                </Link>
+            ),
+        },
+        {
+            id: 'categoria',
+            label: 'Categoría',
+            tooltip: 'Clasificación del producto.',
+            sortable: true,
+            sortKey: 'categoria',
+            cell: (p) => <span className="text-muted-foreground">{p.categoria?.nombre ?? '—'}</span>,
+        },
+        {
+            id: 'marca',
+            label: 'Marca',
+            tooltip: 'Marca o fabricante.',
+            sortable: true,
+            sortKey: 'marca',
+            cell: (p) => <span className="text-muted-foreground">{p.marca?.nombre ?? '—'}</span>,
+        },
+        {
+            id: 'precio_alquiler_diario',
+            label: 'Precio / día',
+            tooltip: 'Tarifa de alquiler por día para una unidad.',
+            sortable: true,
+            sortKey: 'precio_alquiler_diario',
+            align: 'right',
+            cell: (p) => (
+                <span className="tabular-nums">{p.precio_alquiler_diario ? fmtQ(p.precio_alquiler_diario) : '—'}</span>
+            ),
+        },
+        {
+            id: 'stock_alquiler',
+            label: 'Stock total',
+            tooltip: 'Unidades registradas en inventario para alquiler.',
+            sortable: true,
+            sortKey: 'stock_alquiler',
+            align: 'right',
+            cell: (p) => (
+                <span className="tabular-nums text-muted-foreground">
+                    {parseInt(String(p.stock_alquiler), 10) || p.stock_alquiler}
+                </span>
+            ),
+        },
+        {
+            id: 'disponibilidad_actual',
+            label: 'Disponible ahora',
+            tooltip:
+                'Unidades libres hoy: stock total menos lo comprometido en alquileres activos (entregados y no devueltos).',
+            align: 'right',
+            cell: (p) => {
+                const disp = parseInt(String(p.disponibilidad_actual ?? p.stock_alquiler), 10) || 0;
+
+                return (
+                    <span
+                        className={
+                            disp <= 0
+                                ? 'font-medium text-destructive tabular-nums'
+                                : 'font-medium text-primary tabular-nums'
+                        }
+                    >
+                        {disp || p.disponibilidad_actual}
+                    </span>
+                );
+            },
+        },
+        {
+            id: 'activo',
+            label: 'Estado',
+            tooltip: 'Solo los productos activos aparecen al crear alquileres.',
+            sortable: true,
+            sortKey: 'activo',
+            align: 'center',
+            cell: (p) => (
+                <span className={p.activo ? 'font-medium text-primary' : 'text-muted-foreground'}>
+                    {p.activo ? 'Activo' : 'Inactivo'}
+                </span>
+            ),
+        },
+        {
+            id: 'acciones',
+            label: 'Acciones',
+            hideable: false,
+            align: 'right',
+            cell: (p) => (
+                <div className="flex justify-end gap-1">
+                    <IconActionTooltip label="Ver detalle">
+                        <Button variant="ghost" size="icon" className="size-8" asChild>
+                            <Link href={show.url({ producto: p.id })}>
+                                <Eye className="size-4" />
+                            </Link>
+                        </Button>
+                    </IconActionTooltip>
+                    <IconActionTooltip label="Editar">
+                        <Button variant="ghost" size="icon" className="size-8" asChild>
+                            <Link href={edit.url({ producto: p.id })}>
+                                <Pencil className="size-4" />
+                            </Link>
+                        </Button>
+                    </IconActionTooltip>
+                    <IconActionTooltip label="Eliminar">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-destructive hover:bg-destructive/10"
+                            onClick={() =>
+                                confirm({
+                                    title: '¿Eliminar producto?',
+                                    description: 'Se eliminará del inventario.',
+                                    confirmLabel: 'Eliminar',
+                                    variant: 'destructive',
+                                    onConfirm: () => router.delete(destroy.url({ producto: p.id })),
+                                })
+                            }
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </IconActionTooltip>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -89,7 +217,7 @@ export default function ProductosIndex({
                     <CardContent className="space-y-4">
                         <form onSubmit={handleSearch} className="flex flex-wrap gap-2">
                             <div className="relative min-w-0 flex-1">
-                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     name="buscar"
                                     defaultValue={filters?.buscar}
@@ -101,133 +229,17 @@ export default function ProductosIndex({
                                 Buscar
                             </Button>
                         </form>
-                        <div className="faro-table-wrap">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-border/40 bg-muted/30">
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Código</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Nombre</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Categoría</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Marca</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Precio / día</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Stock total</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Disponible ahora</th>
-                                        <th className="px-4 py-3 text-left font-medium text-foreground">Estado</th>
-                                        <th className="w-[140px] px-4 py-3 text-left font-medium text-foreground">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {productos.data.length === 0 ? (
-                                        <tr>
-                                            <td
-                                                colSpan={9}
-                                                className="px-4 py-10 text-center text-muted-foreground"
-                                            >
-                                                No hay productos. Crea el primero desde «Nuevo producto».
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        productos.data.map((p) => (
-                                            <tr
-                                                key={p.id}
-                                                className="border-b border-border/30 last:border-0 transition-colors hover:bg-muted/25"
-                                            >
-                                                <td className="px-4 py-3 font-mono text-muted-foreground">{p.codigo}</td>
-                                                <td className="px-4 py-3 font-medium text-foreground">
-                                                    <Link
-                                                        href={show.url({ producto: p.id })}
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        {p.nombre}
-                                                    </Link>
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground">{p.categoria?.nombre ?? '—'}</td>
-                                                <td className="px-4 py-3 text-muted-foreground">{p.marca?.nombre ?? '—'}</td>
-                                                <td className="px-4 py-3 tabular-nums text-foreground">
-                                                    {p.precio_alquiler_diario ? fmtQ(p.precio_alquiler_diario) : '—'}
-                                                </td>
-                                                <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                                                    {parseInt(String(p.stock_alquiler), 10) || p.stock_alquiler}
-                                                </td>
-                                                <td className="px-4 py-3 tabular-nums">
-                                                    <span
-                                                        className={
-                                                            parseInt(
-                                                                String(p.disponibilidad_actual ?? p.stock_alquiler),
-                                                                10,
-                                                            ) <= 0
-                                                                ? 'font-medium text-destructive'
-                                                                : 'font-medium text-primary'
-                                                        }
-                                                    >
-                                                        {parseInt(
-                                                            String(p.disponibilidad_actual ?? p.stock_alquiler),
-                                                            10,
-                                                        ) || p.disponibilidad_actual}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span
-                                                        className={
-                                                            p.activo
-                                                                ? 'font-medium text-primary'
-                                                                : 'text-muted-foreground'
-                                                        }
-                                                    >
-                                                        {p.activo ? 'Activo' : 'Inactivo'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex gap-1">
-                                                        <IconActionTooltip label="Ver detalle">
-                                                            <Button variant="ghost" size="icon" className="size-8 rounded-md hover:bg-accent" asChild>
-                                                                <Link href={show.url({ producto: p.id })}>
-                                                                    <Eye className="size-4" />
-                                                                </Link>
-                                                            </Button>
-                                                        </IconActionTooltip>
-                                                        <IconActionTooltip label="Editar producto">
-                                                            <Button variant="ghost" size="icon" className="size-8 rounded-md hover:bg-accent" asChild>
-                                                                <Link href={edit.url({ producto: p.id })}>
-                                                                    <Pencil className="size-4" />
-                                                                </Link>
-                                                            </Button>
-                                                        </IconActionTooltip>
-                                                        <IconActionTooltip label="Eliminar producto">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="size-8 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                                                onClick={() => handleDestroy(p.id)}
-                                                            >
-                                                                <Trash2 className="size-4" />
-                                                            </Button>
-                                                        </IconActionTooltip>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        {productos.last_page > 1 && (
-                            <div className="flex flex-wrap items-center justify-center gap-1">
-                                {productos.links.map((link, i) => (
-                                    <Link
-                                        key={i}
-                                        href={link.url ?? '#'}
-                                        className={
-                                            link.active
-                                                ? 'rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground'
-                                                : 'rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                                        }
-                                    >
-                                        {link.label}
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
+                        <FaroDataTable
+                            tableId="productos"
+                            columns={columns}
+                            paginator={productos}
+                            indexUrl={index.url()}
+                            query={filters}
+                            sort={filters.sort}
+                            direction={filters.direction ?? undefined}
+                            rowKey={(p) => p.id}
+                            emptyMessage="No hay productos. Crea el primero desde «Nuevo producto»."
+                        />
                     </CardContent>
                 </Card>
             </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\EstadoAlquiler;
 use App\Enums\MetodoPago;
 use App\Enums\TipoPago;
+use App\Http\Concerns\SortsPaginatedIndex;
 use App\Http\Requests\StoreAlquilerRequest;
 use App\Http\Requests\UpdateAlquilerRequest;
 use App\Models\Alquiler;
@@ -25,11 +26,13 @@ use Inertia\Response;
 
 class AlquilerController extends Controller
 {
+    use SortsPaginatedIndex;
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Alquiler::class);
 
-        $alquileres = Alquiler::query()
+        $query = Alquiler::query()
             ->with(['cliente'])
             ->withCount('lineas')
             ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->string('estado')))
@@ -39,10 +42,27 @@ class AlquilerController extends Controller
                     $inner->where('codigo', 'like', $b)
                         ->orWhereHas('cliente', fn ($c) => $c->where('nombre', 'like', $b));
                 });
-            })
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            });
+
+        $this->applyIndexSort($query, $request, [
+            'codigo' => 'codigo',
+            'cliente' => function ($q, string $direction): void {
+                $q->orderBy(
+                    Cliente::query()
+                        ->select('nombre')
+                        ->whereColumn('clientes.id', 'alquileres.cliente_id')
+                        ->limit(1),
+                    $direction,
+                );
+            },
+            'estado' => 'estado',
+            'fecha_inicio' => 'fecha_inicio_prevista',
+            'fecha_fin' => 'fecha_fin_prevista',
+            'total' => 'total',
+            'lineas' => 'lineas_count',
+        ], 'created_at', 'desc');
+
+        $alquileres = $query->paginate(15)->withQueryString();
 
         // Eager-load pagos so saldoPendiente() doesn't N+1
         $alquileres->getCollection()->load('pagos:id,alquiler_id,tipo,monto');
@@ -53,7 +73,10 @@ class AlquilerController extends Controller
 
         return Inertia::render('alquileres/alquileres/index', [
             'alquileres' => $alquileres,
-            'filters' => $request->only(['buscar', 'estado']),
+            'filters' => array_merge(
+                $request->only(['buscar', 'estado']),
+                $this->indexSortFilters($request),
+            ),
             'estados' => collect(EstadoAlquiler::cases())->map(fn (EstadoAlquiler $e) => [
                 'value' => $e->value,
                 'label' => $e->etiqueta(),

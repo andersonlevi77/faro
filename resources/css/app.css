@@ -200,6 +200,19 @@
         @apply transition-colors duration-150 ease-out;
     }
 
+    /* Botones interactivos fuera del sidebar */
+    [data-slot='button']:hover:not(:disabled) {
+        @apply cursor-pointer;
+    }
+
+    [data-slot='sidebar'] [data-slot='button'] {
+        @apply translate-y-0 shadow-none active:scale-100;
+    }
+
+    [data-slot='sidebar'] [data-slot='button']:hover:not(:disabled) {
+        @apply translate-y-0 shadow-none;
+    }
+
     /* Nav activo: píldora azul con texto blanco legible */
     [data-sidebar='menu-button'][data-active='true'] {
         background-color: var(--sidebar-primary);

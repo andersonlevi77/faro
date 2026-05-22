@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\SortsPaginatedIndex;
 use App\Http\Requests\StoreRoleRequest;
 use App\Http\Requests\UpdateRoleRequest;
 use Database\Seeders\RolePermissionSeeder;
@@ -16,25 +17,35 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
+    use SortsPaginatedIndex;
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Role::class);
 
-        $roles = Role::query()
+        $query = Role::query()
             ->where('guard_name', 'web')
             ->withCount('users')
             ->withCount('permissions')
             ->when($request->filled('buscar'), function ($q) use ($request): void {
                 $b = '%'.$request->string('buscar').'%';
                 $q->where('name', 'like', $b);
-            })
-            ->orderBy('name')
-            ->paginate(15)
-            ->withQueryString();
+            });
+
+        $this->applyIndexSort($query, $request, [
+            'name' => 'name',
+            'usuarios' => 'users_count',
+            'permisos' => 'permissions_count',
+        ], 'name', 'asc');
+
+        $roles = $query->paginate(15)->withQueryString();
 
         return Inertia::render('roles/index', [
             'roles' => $roles,
-            'filters' => $request->only(['buscar']),
+            'filters' => array_merge(
+                $request->only(['buscar']),
+                $this->indexSortFilters($request),
+            ),
         ]);
     }
 

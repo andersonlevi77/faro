@@ -3,10 +3,12 @@ import { Plus, Search, Wrench } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { create, index, show } from '@/routes/mantenimientos';
 import type { BreadcrumbItem } from '@/types';
+import { FaroDataTable, type FaroColumnDef } from '@/components/faro-data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fmtQ } from '@/lib/utils';
+import type { LaravelPaginator, TableSortState } from '@/types/pagination';
 
 interface MantenimientoRow {
     id: number;
@@ -14,19 +16,8 @@ interface MantenimientoRow {
     estado: string;
     costo: string;
     fecha_programada: string | null;
-    fecha_inicio_at: string | null;
-    fecha_fin_at: string | null;
     unidad?: { id: number; codigo: string; producto?: { nombre: string } | null } | null;
     producto?: { id: number; nombre: string } | null;
-    creado_por?: { name: string } | null;
-}
-
-interface Paginated {
-    data: MantenimientoRow[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    links: { url: string | null; label: string; active: boolean }[];
 }
 
 interface EstadoOpcion {
@@ -47,13 +38,11 @@ export default function MantenimientosIndex({
     filters,
     estados,
 }: {
-    mantenimientos: Paginated;
-    filters: { buscar?: string; estado?: string };
+    mantenimientos: LaravelPaginator<MantenimientoRow>;
+    filters: { buscar?: string; estado?: string } & TableSortState;
     estados: EstadoOpcion[];
 }) {
-    const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Mantenimientos', href: index.url() },
-    ];
+    const breadcrumbs: BreadcrumbItem[] = [{ title: 'Mantenimientos', href: index.url() }];
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -61,8 +50,84 @@ export default function MantenimientosIndex({
         const buscar = (form.elements.namedItem('buscar') as HTMLInputElement)?.value;
         const estadoEl = form.elements.namedItem('estado') as HTMLSelectElement | null;
         const estado = estadoEl?.value;
-        router.get(index.url(), { buscar: buscar || undefined, estado: estado || undefined }, { preserveState: true });
+        router.get(
+            index.url(),
+            {
+                buscar: buscar || undefined,
+                estado: estado || undefined,
+                sort: filters.sort,
+                direction: filters.direction,
+            },
+            { preserveState: true },
+        );
     };
+
+    const columns: FaroColumnDef<MantenimientoRow>[] = [
+        {
+            id: 'titulo',
+            label: 'Título',
+            tooltip: 'Descripción breve del trabajo de mantenimiento.',
+            sortable: true,
+            sortKey: 'titulo',
+            cell: (m) => (
+                <Link href={show.url({ mantenimiento: m.id })} className="font-medium text-primary hover:underline">
+                    {m.titulo}
+                </Link>
+            ),
+        },
+        {
+            id: 'equipo',
+            label: 'Unidad / Producto',
+            tooltip: 'Unidad serializada o producto asociado al mantenimiento.',
+            cell: (m) => (
+                <span className="text-muted-foreground">
+                    {m.unidad ? (
+                        <>
+                            {m.unidad.codigo}{' '}
+                            <span className="text-xs">({m.unidad.producto?.nombre})</span>
+                        </>
+                    ) : (
+                        (m.producto?.nombre ?? '—')
+                    )}
+                </span>
+            ),
+        },
+        {
+            id: 'estado',
+            label: 'Estado',
+            tooltip: 'Pendiente, en proceso o finalizado.',
+            sortable: true,
+            sortKey: 'estado',
+            cell: (m) => {
+                const estadoInfo = estados.find((e) => e.value === m.estado);
+
+                return (
+                    <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[estadoInfo?.color ?? 'gray'] ?? colorMap.gray}`}
+                    >
+                        {estadoInfo?.label ?? m.estado}
+                    </span>
+                );
+            },
+        },
+        {
+            id: 'costo',
+            label: 'Costo',
+            tooltip: 'Costo estimado o real del mantenimiento.',
+            sortable: true,
+            sortKey: 'costo',
+            align: 'right',
+            cell: (m) => <span className="tabular-nums">{fmtQ(m.costo)}</span>,
+        },
+        {
+            id: 'fecha_programada',
+            label: 'Programado',
+            tooltip: 'Fecha planificada para realizar el mantenimiento.',
+            sortable: true,
+            sortKey: 'fecha_programada',
+            cell: (m) => <span className="text-muted-foreground">{m.fecha_programada ?? '—'}</span>,
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -77,7 +142,9 @@ export default function MantenimientosIndex({
                                 </span>
                                 Mantenimientos
                             </CardTitle>
-                            <CardDescription className="mt-1">Registro de mantenimiento de unidades y equipos.</CardDescription>
+                            <CardDescription className="mt-1">
+                                Registro de mantenimiento de unidades y equipos.
+                            </CardDescription>
                         </div>
                         <Button asChild className="shrink-0">
                             <Link href={create.url()}>
@@ -89,7 +156,7 @@ export default function MantenimientosIndex({
                     <CardContent className="space-y-4">
                         <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                             <div className="relative min-w-0 flex-1">
-                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     name="buscar"
                                     defaultValue={filters?.buscar}
@@ -100,79 +167,30 @@ export default function MantenimientosIndex({
                             <select
                                 name="estado"
                                 defaultValue={filters?.estado ?? ''}
-                                className="flex h-10 w-full faro-native-select border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[200px]"
+                                className="faro-native-select flex h-10 w-full border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[200px]"
                             >
                                 <option value="">Todos los estados</option>
                                 {estados.map((s) => (
-                                    <option key={s.value} value={s.value}>{s.label}</option>
+                                    <option key={s.value} value={s.value}>
+                                        {s.label}
+                                    </option>
                                 ))}
                             </select>
-                            <Button type="submit" variant="secondary">Filtrar</Button>
+                            <Button type="submit" variant="secondary">
+                                Filtrar
+                            </Button>
                         </form>
-
-                        <div className="faro-table-wrap">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-border/40 bg-muted/30">
-                                        <th className="px-4 py-3 text-left font-medium">Título</th>
-                                        <th className="px-4 py-3 text-left font-medium">Unidad / Producto</th>
-                                        <th className="px-4 py-3 text-left font-medium">Estado</th>
-                                        <th className="px-4 py-3 text-right font-medium">Costo</th>
-                                        <th className="px-4 py-3 text-left font-medium">Programado</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {mantenimientos.data.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                                                No hay mantenimientos registrados.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        mantenimientos.data.map((m) => {
-                                            const estadoInfo = estados.find((e) => e.value === m.estado);
-                                            return (
-                                                <tr
-                                                    key={m.id}
-                                                    className="border-b border-border/30 hover:bg-muted/20 cursor-pointer"
-                                                    onClick={() => router.visit(show.url({ mantenimiento: m.id }))}
-                                                >
-                                                    <td className="px-4 py-3 font-medium">{m.titulo}</td>
-                                                    <td className="px-4 py-3 text-muted-foreground">
-                                                        {m.unidad
-                                                            ? <>{m.unidad.codigo} <span className="text-xs">({m.unidad.producto?.nombre})</span></>
-                                                            : m.producto?.nombre ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[estadoInfo?.color ?? 'gray'] ?? colorMap.gray}`}>
-                                                            {estadoInfo?.label ?? m.estado}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right tabular-nums">{fmtQ(m.costo)}</td>
-                                                    <td className="px-4 py-3 text-muted-foreground">{m.fecha_programada ?? '—'}</td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {mantenimientos.last_page > 1 && (
-                            <div className="flex flex-wrap justify-center gap-1">
-                                {mantenimientos.links.map((link, i) => (
-                                    <Button
-                                        key={i}
-                                        variant={link.active ? 'default' : 'outline'}
-                                        size="sm"
-                                        disabled={!link.url}
-                                        onClick={() => link.url && router.visit(link.url)}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                        className="min-w-[2rem]"
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        <FaroDataTable
+                            tableId="mantenimientos"
+                            columns={columns}
+                            paginator={mantenimientos}
+                            indexUrl={index.url()}
+                            query={filters}
+                            sort={filters.sort}
+                            direction={filters.direction ?? undefined}
+                            rowKey={(m) => m.id}
+                            emptyMessage="No hay mantenimientos registrados."
+                        />
                     </CardContent>
                 </Card>
             </div>

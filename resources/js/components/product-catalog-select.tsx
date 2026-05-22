@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { flushSync } from 'react-dom';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,8 +25,6 @@ import { PostJsonError, postJson } from '@/lib/post-json';
 import { store as storeCategoria } from '@/routes/categorias';
 import { store as storeMarca } from '@/routes/marcas';
 import { store as storePresentacion } from '@/routes/presentaciones';
-
-const CREATE_VALUE = '__create__';
 
 export interface CatalogOption {
     id: number;
@@ -83,10 +82,16 @@ export function ProductCatalogSelect({
     error,
 }: ProductCatalogSelectProps) {
     const config = catalogConfig[kind];
+    const [selectOpen, setSelectOpen] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [nombre, setNombre] = useState('');
     const [saving, setSaving] = useState(false);
     const [createError, setCreateError] = useState<string | undefined>();
+
+    const selectedOption = useMemo(
+        () => options.find((option) => option.id === value),
+        [options, value],
+    );
 
     const openCreateDialog = () => {
         setNombre('');
@@ -95,12 +100,6 @@ export function ProductCatalogSelect({
     };
 
     const handleSelectChange = (selected: string) => {
-        if (selected === CREATE_VALUE) {
-            openCreateDialog();
-
-            return;
-        }
-
         onValueChange(selected ? Number(selected) : '');
     };
 
@@ -118,12 +117,19 @@ export function ProductCatalogSelect({
 
         try {
             const created = await postJson<CatalogOption>(config.storeUrl(), { nombre: trimmed });
-            const nextOptions = [...options, created].sort((a, b) =>
+            const option: CatalogOption = {
+                id: Number(created.id),
+                nombre: created.nombre,
+            };
+            const nextOptions = [...options, option].sort((a, b) =>
                 a.nombre.localeCompare(b.nombre, 'es'),
             );
 
-            onOptionsChange(nextOptions);
-            onValueChange(created.id);
+            flushSync(() => {
+                onOptionsChange(nextOptions);
+                onValueChange(option.id);
+            });
+
             setDialogOpen(false);
         } catch (e) {
             if (e instanceof PostJsonError) {
@@ -140,11 +146,15 @@ export function ProductCatalogSelect({
         <div className="faro-field">
             <Label>{label}</Label>
             <Select
+                open={selectOpen}
+                onOpenChange={setSelectOpen}
                 value={value ? String(value) : ''}
                 onValueChange={handleSelectChange}
             >
-                <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar" />
+                <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar">
+                        {selectedOption?.nombre}
+                    </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                     {options.map((option) => (
@@ -153,12 +163,26 @@ export function ProductCatalogSelect({
                         </SelectItem>
                     ))}
                     {options.length > 0 && <SelectSeparator />}
-                    <SelectItem value={CREATE_VALUE} className="text-primary">
-                        <span className="flex items-center gap-2">
-                            <Plus className="size-4" />
-                            {config.createLabel}
-                        </span>
-                    </SelectItem>
+                    <div
+                        role="button"
+                        tabIndex={0}
+                        className="relative flex w-full cursor-pointer items-center gap-2 rounded-lg py-2 pr-2 pl-2 text-sm text-primary outline-hidden select-none hover:bg-accent focus:bg-accent"
+                        onPointerDown={(e) => e.preventDefault()}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setSelectOpen(false);
+                                openCreateDialog();
+                            }
+                        }}
+                        onClick={() => {
+                            setSelectOpen(false);
+                            openCreateDialog();
+                        }}
+                    >
+                        <Plus className="size-4" />
+                        {config.createLabel}
+                    </div>
                 </SelectContent>
             </Select>
             <InputError message={error} />

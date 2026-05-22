@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EstadoMantenimiento;
+use App\Http\Concerns\SortsPaginatedIndex;
 use App\Http\Requests\StoreMantenimientoRequest;
 use App\Http\Requests\UpdateMantenimientoRequest;
 use App\Models\Mantenimiento;
@@ -15,11 +16,13 @@ use Inertia\Response;
 
 class MantenimientoController extends Controller
 {
+    use SortsPaginatedIndex;
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Mantenimiento::class);
 
-        $mantenimientos = Mantenimiento::query()
+        $query = Mantenimiento::query()
             ->with(['unidad.producto', 'producto', 'creadoPor'])
             ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->string('estado')))
             ->when($request->filled('buscar'), function ($q) use ($request): void {
@@ -27,14 +30,23 @@ class MantenimientoController extends Controller
                 $q->where('titulo', 'like', $b)
                     ->orWhereHas('unidad', fn ($u) => $u->where('codigo', 'like', $b))
                     ->orWhereHas('producto', fn ($p) => $p->where('nombre', 'like', $b));
-            })
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+            });
+
+        $this->applyIndexSort($query, $request, [
+            'titulo' => 'titulo',
+            'estado' => 'estado',
+            'costo' => 'costo',
+            'fecha_programada' => 'fecha_programada',
+        ], 'created_at', 'desc');
+
+        $mantenimientos = $query->paginate(20)->withQueryString();
 
         return Inertia::render('mantenimientos/index', [
             'mantenimientos' => $mantenimientos,
-            'filters' => $request->only(['buscar', 'estado']),
+            'filters' => array_merge(
+                $request->only(['buscar', 'estado']),
+                $this->indexSortFilters($request),
+            ),
             'estados' => collect(EstadoMantenimiento::cases())->map(fn (EstadoMantenimiento $e) => [
                 'value' => $e->value,
                 'label' => $e->etiqueta(),

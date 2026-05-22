@@ -3,11 +3,13 @@ import { Pencil, Plus, Search, Trash2, Users } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { create, destroy, edit, index, show } from '@/routes/clientes';
 import type { BreadcrumbItem } from '@/types';
+import { FaroDataTable, type FaroColumnDef } from '@/components/faro-data-table';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { LaravelPaginator, TableSortState } from '@/types/pagination';
 
 interface ClienteRow {
     id: number;
@@ -24,15 +26,6 @@ interface Puntaje {
     etiqueta: string;
 }
 
-interface Paginated {
-    data: ClienteRow[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    links: { url: string | null; label: string; active: boolean }[];
-}
-
 const SCORE_COLOR: Record<string, string> = {
     Excelente: 'faro-status-excelente',
     Bueno: 'faro-status-bueno',
@@ -45,8 +38,8 @@ export default function ClientesIndex({
     filters,
     puntajes,
 }: {
-    clientes: Paginated;
-    filters: { buscar?: string };
+    clientes: LaravelPaginator<ClienteRow>;
+    filters: { buscar?: string } & TableSortState;
     puntajes: Record<number, Puntaje>;
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -59,17 +52,115 @@ export default function ClientesIndex({
         e.preventDefault();
         const form = e.currentTarget;
         const buscar = (form.elements.namedItem('buscar') as HTMLInputElement)?.value;
-        router.get(index.url(), { buscar: buscar || undefined }, { preserveState: true });
+        router.get(
+            index.url(),
+            { buscar: buscar || undefined, sort: filters.sort, direction: filters.direction },
+            { preserveState: true },
+        );
     };
 
-    const handleDestroy = (id: number) => {
-        confirm({
-            title: '¿Eliminar este cliente?',
-            description: 'Se eliminará el registro del cliente. Esta acción no se puede deshacer.',
-            confirmLabel: 'Eliminar cliente',
-            onConfirm: () => router.delete(destroy.url({ cliente: id })),
-        });
-    };
+    const columns: FaroColumnDef<ClienteRow>[] = [
+        {
+            id: 'nombre',
+            label: 'Nombre',
+            tooltip: 'Nombre del cliente o razón social.',
+            sortable: true,
+            sortKey: 'nombre',
+            cell: (c) => <span className="font-medium text-foreground">{c.nombre}</span>,
+        },
+        {
+            id: 'documento',
+            label: 'Documento',
+            tooltip: 'NIT, DPI u otro identificador.',
+            sortable: true,
+            sortKey: 'documento',
+            cell: (c) => <span className="text-muted-foreground">{c.documento ?? '—'}</span>,
+        },
+        {
+            id: 'contacto',
+            label: 'Contacto',
+            tooltip: 'Correo y teléfono de contacto.',
+            sortable: true,
+            sortKey: 'email',
+            cell: (c) => (
+                <span className="text-muted-foreground">
+                    {[c.email, c.telefono].filter(Boolean).join(' · ') || '—'}
+                </span>
+            ),
+        },
+        {
+            id: 'alquileres',
+            label: 'Alquileres',
+            tooltip: 'Cantidad de contratos de alquiler registrados.',
+            sortable: true,
+            sortKey: 'alquileres',
+            align: 'right',
+            cell: (c) => <span className="tabular-nums">{c.alquileres_count}</span>,
+        },
+        {
+            id: 'puntuacion',
+            label: 'Puntuación',
+            tooltip:
+                'Calificación según historial de pagos y devoluciones: puntualidad, daños y cumplimiento.',
+            cell: (c) => {
+                const puntaje = puntajes[c.id];
+
+                if (!puntaje) {
+                    return null;
+                }
+
+                return (
+                    <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${SCORE_COLOR[puntaje.etiqueta] ?? ''}`}
+                    >
+                        {puntaje.puntuacion} — {puntaje.etiqueta}
+                    </span>
+                );
+            },
+        },
+        {
+            id: 'acciones',
+            label: 'Acciones',
+            hideable: false,
+            align: 'right',
+            cell: (c) => (
+                <div className="flex justify-end gap-1">
+                    <IconActionTooltip label="Ver ficha">
+                        <Button variant="ghost" size="icon" className="size-8" asChild>
+                            <Link href={show.url({ cliente: c.id })}>
+                                <Users className="size-4" />
+                            </Link>
+                        </Button>
+                    </IconActionTooltip>
+                    <IconActionTooltip label="Editar">
+                        <Button variant="ghost" size="icon" className="size-8" asChild>
+                            <Link href={edit.url({ cliente: c.id })}>
+                                <Pencil className="size-4" />
+                            </Link>
+                        </Button>
+                    </IconActionTooltip>
+                    <IconActionTooltip label="Eliminar">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-destructive hover:text-destructive"
+                            onClick={() =>
+                                confirm({
+                                    title: '¿Eliminar cliente?',
+                                    description: 'Esta acción no se puede deshacer.',
+                                    confirmLabel: 'Eliminar',
+                                    variant: 'destructive',
+                                    onConfirm: () => router.delete(destroy.url({ cliente: c.id })),
+                                })
+                            }
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </IconActionTooltip>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -97,7 +188,7 @@ export default function ClientesIndex({
                     <CardContent className="space-y-4">
                         <form onSubmit={handleSearch} className="flex flex-wrap gap-2">
                             <div className="relative min-w-0 flex-1">
-                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     name="buscar"
                                     defaultValue={filters?.buscar}
@@ -109,97 +200,17 @@ export default function ClientesIndex({
                                 Buscar
                             </Button>
                         </form>
-                        <div className="faro-table-wrap">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-border/40 bg-muted/30">
-                                        <th className="px-4 py-3 text-left font-medium">Nombre</th>
-                                        <th className="px-4 py-3 text-left font-medium">Documento</th>
-                                        <th className="px-4 py-3 text-left font-medium">Contacto</th>
-                                        <th className="px-4 py-3 text-right font-medium">Alquileres</th>
-                                        <th className="px-4 py-3 text-left font-medium">Puntuación</th>
-                                        <th className="w-[100px] px-4 py-3 text-left font-medium">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {clientes.data.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                                                No hay clientes. Crea el primero.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        clientes.data.map((c) => {
-                                            const puntaje = puntajes[c.id];
-                                            return (
-                                                <tr key={c.id} className="border-b border-border/30">
-                                                    <td className="px-4 py-3 font-medium text-foreground">{c.nombre}</td>
-                                                    <td className="px-4 py-3 text-muted-foreground">{c.documento ?? '—'}</td>
-                                                    <td className="px-4 py-3 text-muted-foreground">
-                                                        {[c.email, c.telefono].filter(Boolean).join(' · ') || '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right tabular-nums">{c.alquileres_count}</td>
-                                                    <td className="px-4 py-3">
-                                                        {puntaje && (
-                                                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${SCORE_COLOR[puntaje.etiqueta] ?? ''}`}>
-                                                                {puntaje.puntuacion} — {puntaje.etiqueta}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex gap-1">
-                                                            <IconActionTooltip label="Ver ficha del cliente">
-                                                                <Button variant="ghost" size="icon" className="size-8" asChild>
-                                                                    <Link href={show.url({ cliente: c.id })}>
-                                                                        <span className="sr-only">Ver</span>
-                                                                        <Users className="size-4" />
-                                                                    </Link>
-                                                                </Button>
-                                                            </IconActionTooltip>
-                                                            <IconActionTooltip label="Editar cliente">
-                                                                <Button variant="ghost" size="icon" className="size-8" asChild>
-                                                                    <Link href={edit.url({ cliente: c.id })}>
-                                                                        <span className="sr-only">Editar</span>
-                                                                        <Pencil className="size-4" />
-                                                                    </Link>
-                                                                </Button>
-                                                            </IconActionTooltip>
-                                                            <IconActionTooltip label="Eliminar cliente">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="size-8 text-destructive hover:text-destructive"
-                                                                    type="button"
-                                                                    onClick={() => handleDestroy(c.id)}
-                                                                >
-                                                                    <Trash2 className="size-4" />
-                                                                </Button>
-                                                            </IconActionTooltip>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {clientes.last_page > 1 && (
-                            <div className="flex flex-wrap justify-center gap-1">
-                                {clientes.links.map((link, i) => (
-                                    <Button
-                                        key={i}
-                                        variant={link.active ? 'default' : 'outline'}
-                                        size="sm"
-                                        disabled={!link.url}
-                                        onClick={() => link.url && router.visit(link.url)}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                        className="min-w-[2rem]"
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        <FaroDataTable
+                            tableId="clientes"
+                            columns={columns}
+                            paginator={clientes}
+                            indexUrl={index.url()}
+                            query={filters}
+                            sort={filters.sort}
+                            direction={filters.direction ?? undefined}
+                            rowKey={(c) => c.id}
+                            emptyMessage="No hay clientes. Crea el primero."
+                        />
                     </CardContent>
                 </Card>
             </div>
