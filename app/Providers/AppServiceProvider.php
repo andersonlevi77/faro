@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
@@ -33,7 +34,21 @@ class AppServiceProvider extends ServiceProvider
         app()->setLocale($locale);
         CarbonImmutable::setLocale($locale);
 
+        $this->configureHttps();
         $this->configureDefaults();
+    }
+
+    protected function configureHttps(): void
+    {
+        if (! $this->app->environment('production')) {
+            return;
+        }
+
+        URL::forceScheme('https');
+
+        if ($appUrl = config('app.url')) {
+            URL::forceRootUrl($appUrl);
+        }
     }
 
     /**
