@@ -9,7 +9,17 @@ export default defineConfig({
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             ssr: 'resources/js/ssr.tsx',
-            refresh: true,
+            // No refrescar rutas generadas por Wayfinder (evita bucle de recarga en dev).
+            refresh: [
+                'resources/views/**',
+                'routes/**',
+                'app/**',
+                'config/**',
+                'lang/**',
+                'resources/js/pages/**',
+                'resources/js/components/**',
+                'resources/js/layouts/**',
+            ],
         }),
         react({
             babel: {
@@ -18,8 +28,7 @@ export default defineConfig({
         }),
         tailwindcss(),
         wayfinder({
-            // formVariants regenera rutas en cada cambio y puede dejar Vite en bucle de recarga.
-            formVariants: process.env.WAYFINDER_FORM_VARIANTS === 'true',
+            formVariants: true,
         }),
     ],
     esbuild: {
