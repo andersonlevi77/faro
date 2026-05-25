@@ -24,7 +24,8 @@ class ClienteController extends Controller
             ->when($request->filled('buscar'), function ($query) use ($request): void {
                 $b = '%'.$request->string('buscar').'%';
                 $query->where(function ($q) use ($b): void {
-                    $q->where('nombre', 'like', $b)
+                    $q->where('codigo', 'like', $b)
+                        ->orWhere('nombre', 'like', $b)
                         ->orWhere('documento', 'like', $b)
                         ->orWhere('email', 'like', $b)
                         ->orWhere('telefono', 'like', $b);
@@ -32,6 +33,7 @@ class ClienteController extends Controller
             });
 
         $this->applyIndexSort($query, $request, [
+            'codigo' => 'codigo',
             'nombre' => 'nombre',
             'documento' => 'documento',
             'email' => 'email',

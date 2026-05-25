@@ -20,6 +20,7 @@ class Cliente extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'codigo',
         'nombre',
         'documento',
         'email',

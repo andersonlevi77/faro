@@ -106,6 +106,27 @@ test('el saldo pendiente se calcula correctamente', function () {
     expect($alquiler->fresh()->saldoPendiente())->toBe('120.00');
 });
 
+test('la vista del alquiler refleja pagos de deposito en el saldo pendiente', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $alquiler = crearAlquilerConLinea();
+
+    $alquiler->pagos()->create([
+        'tipo' => TipoPago::Deposito->value,
+        'monto' => '100.00',
+        'metodo_pago' => MetodoPago::Efectivo->value,
+        'registrado_por' => $user->id,
+    ]);
+
+    $this->get(route('alquileres.show', $alquiler))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('resumen.total_cobrado', '100.00')
+            ->where('resumen.saldo_pendiente', '200.00')
+        );
+});
+
 test('se puede registrar devolucion con daños', function () {
     $user = User::factory()->create();
     $this->actingAs($user);

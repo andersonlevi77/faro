@@ -149,18 +149,24 @@ class Alquiler extends Model
     /** Total cobrado al cliente (ingresos). */
     public function totalCobrado(): string
     {
-        $tiposIngreso = array_map(
-            fn (TipoPago $t) => $t->value,
-            array_filter(TipoPago::cases(), fn (TipoPago $t) => $t->esIngreso()),
+        $tiposIngreso = array_filter(
+            TipoPago::cases(),
+            fn (TipoPago $t) => $t->esIngreso(),
         );
 
         if ($this->relationLoaded('pagos')) {
             $sum = $this->pagos
-                ->whereIn('tipo', $tiposIngreso)
-                ->sum(fn ($pago) => (float) $pago->monto);
+                ->filter(function (Pago $pago) use ($tiposIngreso): bool {
+                    $tipo = $pago->tipo instanceof TipoPago
+                        ? $pago->tipo
+                        : TipoPago::from((string) $pago->tipo);
+
+                    return in_array($tipo, $tiposIngreso, true);
+                })
+                ->sum(fn (Pago $pago) => (float) $pago->monto);
         } else {
             $sum = $this->pagos()
-                ->whereIn('tipo', $tiposIngreso)
+                ->whereIn('tipo', array_map(fn (TipoPago $t) => $t->value, $tiposIngreso))
                 ->sum('monto');
         }
 
@@ -170,9 +176,21 @@ class Alquiler extends Model
     /** Total devuelto al cliente (egresos). */
     public function totalDevuelto(): string
     {
-        $sum = $this->pagos()
-            ->where('tipo', TipoPago::DevolucionDeposito->value)
-            ->sum('monto');
+        if ($this->relationLoaded('pagos')) {
+            $sum = $this->pagos
+                ->filter(function (Pago $pago): bool {
+                    $tipo = $pago->tipo instanceof TipoPago
+                        ? $pago->tipo
+                        : TipoPago::from((string) $pago->tipo);
+
+                    return $tipo === TipoPago::DevolucionDeposito;
+                })
+                ->sum(fn (Pago $pago) => (float) $pago->monto);
+        } else {
+            $sum = $this->pagos()
+                ->where('tipo', TipoPago::DevolucionDeposito->value)
+                ->sum('monto');
+        }
 
         return number_format((float) $sum, 2, '.', '');
     }

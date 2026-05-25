@@ -13,6 +13,7 @@ import type { LaravelPaginator, TableSortState } from '@/types/pagination';
 
 interface ClienteRow {
     id: number;
+    codigo: string | null;
     nombre: string;
     documento: string | null;
     email: string | null;
@@ -60,6 +61,14 @@ export default function ClientesIndex({
     };
 
     const columns: FaroColumnDef<ClienteRow>[] = [
+        {
+            id: 'codigo',
+            label: 'Código',
+            tooltip: 'Identificador interno del cliente.',
+            sortable: true,
+            sortKey: 'codigo',
+            cell: (c) => <span className="font-mono text-xs text-muted-foreground">{c.codigo ?? '—'}</span>,
+        },
         {
             id: 'nombre',
             label: 'Nombre',

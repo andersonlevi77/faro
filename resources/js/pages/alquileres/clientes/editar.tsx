@@ -11,6 +11,7 @@ import type { BreadcrumbItem } from '@/types';
 
 interface Cliente {
     id: number;
+    codigo: string | null;
     nombre: string;
     documento: string | null;
     email: string | null;
@@ -27,6 +28,7 @@ export default function ClientesEditar({ cliente }: { cliente: Cliente }) {
     ];
 
     const { data, setData, put, processing, errors } = useForm({
+        codigo: cliente.codigo ?? '',
         nombre: cliente.nombre,
         documento: cliente.documento ?? '',
         email: cliente.email ?? '',
@@ -60,6 +62,11 @@ export default function ClientesEditar({ cliente }: { cliente: Cliente }) {
                     className="faro-form-card space-y-5"
                 >
                     <div className="faro-form-grid sm:grid-cols-2">
+                        <div className="faro-field">
+                            <Label htmlFor="codigo">Código</Label>
+                            <Input id="codigo" value={data.codigo} onChange={(e) => setData('codigo', e.target.value)} />
+                            <InputError message={errors.codigo} />
+                        </div>
                         <div className="faro-field sm:col-span-2">
                             <Label htmlFor="nombre">Nombre *</Label>
                             <Input id="nombre" value={data.nombre} onChange={(e) => setData('nombre', e.target.value)} required />

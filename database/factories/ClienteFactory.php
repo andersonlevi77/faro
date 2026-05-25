@@ -18,6 +18,7 @@ class ClienteFactory extends Factory
     public function definition(): array
     {
         return [
+            'codigo' => fake()->boolean(60) ? fake()->unique()->bothify('CLI-###') : null,
             'nombre' => fake()->company(),
             'documento' => fake()->unique()->numerify('###########'),
             'email' => fake()->unique()->safeEmail(),

@@ -15,12 +15,16 @@ test('usuario autenticado puede crear y listar clientes', function () {
     $this->actingAs($user);
 
     $this->post(route('clientes.store'), [
+        'codigo' => 'CLI-001',
         'nombre' => 'Cliente Demo',
         'documento' => '12345678',
         'email' => 'demo@example.com',
     ])->assertRedirect(route('clientes.index'));
 
-    $this->assertDatabaseHas('clientes', ['nombre' => 'Cliente Demo']);
+    $this->assertDatabaseHas('clientes', [
+        'codigo' => 'CLI-001',
+        'nombre' => 'Cliente Demo',
+    ]);
 
     $this->get(route('clientes.index'))->assertOk();
 });

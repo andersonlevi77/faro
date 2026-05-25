@@ -65,7 +65,7 @@ interface Alquiler {
     danio_descripcion: string | null;
     danio_monto: string;
     deposito_devuelto: string | null;
-    cliente?: { id: number; nombre: string; documento: string | null } | null;
+    cliente?: { id: number; codigo: string | null; nombre: string; documento: string | null } | null;
     usuario?: { id: number; name: string } | null;
     lineas: Linea[];
     pagos: Pago[];
@@ -244,6 +244,9 @@ export default function AlquileresVer({
                         </CardHeader>
                         <CardContent className="space-y-1 text-sm">
                             <p className="font-medium">{alquiler.cliente?.nombre ?? '—'}</p>
+                            {alquiler.cliente?.codigo && (
+                                <p className="text-muted-foreground">Código: {alquiler.cliente.codigo}</p>
+                            )}
                             <p className="text-muted-foreground">{alquiler.cliente?.documento}</p>
                         </CardContent>
                     </Card>

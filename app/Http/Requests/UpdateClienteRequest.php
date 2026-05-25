@@ -26,6 +26,7 @@ class UpdateClienteRequest extends FormRequest
         $cliente = $this->route('cliente');
 
         return [
+            'codigo' => ['nullable', 'string', 'max:50', Rule::unique('clientes', 'codigo')->ignore($cliente->id)],
             'nombre' => ['required', 'string', 'max:255'],
             'documento' => ['nullable', 'string', 'max:50', Rule::unique('clientes', 'documento')->ignore($cliente->id)],
             'email' => ['nullable', 'email', 'max:255'],

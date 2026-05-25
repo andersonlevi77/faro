@@ -16,6 +16,7 @@ export default function ClientesCrear() {
     ];
 
     const { data, setData, post, processing, errors } = useForm({
+        codigo: '',
         nombre: '',
         documento: '',
         email: '',
@@ -49,6 +50,16 @@ export default function ClientesCrear() {
                     className="faro-form-card space-y-5"
                 >
                     <div className="faro-form-grid sm:grid-cols-2">
+                        <div className="faro-field">
+                            <Label htmlFor="codigo">Código</Label>
+                            <Input
+                                id="codigo"
+                                placeholder="Opcional"
+                                value={data.codigo}
+                                onChange={(e) => setData('codigo', e.target.value)}
+                            />
+                            <InputError message={errors.codigo} />
+                        </div>
                         <div className="faro-field sm:col-span-2">
                             <Label htmlFor="nombre">Nombre o razón social *</Label>
                             <Input id="nombre" value={data.nombre} onChange={(e) => setData('nombre', e.target.value)} required />

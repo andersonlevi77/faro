@@ -20,6 +20,7 @@ interface AlquilerMini {
 
 interface Cliente {
     id: number;
+    codigo: string | null;
     nombre: string;
     documento: string | null;
     email: string | null;
@@ -96,6 +97,10 @@ export default function ClientesVer({
                             <CardDescription>Información registrada del cliente.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+                            <div>
+                                <p className="text-muted-foreground">Código</p>
+                                <p className="font-medium">{cliente.codigo ?? '—'}</p>
+                            </div>
                             <div>
                                 <p className="text-muted-foreground">Documento</p>
                                 <p className="font-medium">{cliente.documento ?? '—'}</p>
