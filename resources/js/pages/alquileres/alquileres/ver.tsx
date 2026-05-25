@@ -1,11 +1,11 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus, Printer, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import estado from '@/routes/alquileres/estado';
 import pagosRoutes from '@/routes/alquileres/pagos';
-import { edit, index, show } from '@/routes/alquileres';
+import { edit, index, print as printAlquiler, show } from '@/routes/alquileres';
 import type { BreadcrumbItem } from '@/types';
 import { AlquilerEstadoPanel } from '@/components/alquiler-estado-panel';
 import { IconActionTooltip } from '@/components/icon-action-tooltip';
@@ -218,14 +218,22 @@ export default function AlquileresVer({
                             </span>
                         </div>
                     </div>
-                    {puedeEditar && (
-                        <Button asChild>
-                            <Link href={edit.url({ alquiler: alquiler.id })}>
-                                <Pencil className="mr-2 size-4" />
-                                Editar alquiler
-                            </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button variant="outline" asChild>
+                            <a href={printAlquiler.url({ alquiler: alquiler.id })} target="_blank" rel="noreferrer">
+                                <Printer className="mr-2 size-4" />
+                                Imprimir alquiler
+                            </a>
                         </Button>
-                    )}
+                        {puedeEditar && (
+                            <Button asChild>
+                                <Link href={edit.url({ alquiler: alquiler.id })}>
+                                    <Pencil className="mr-2 size-4" />
+                                    Editar alquiler
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <AlquilerEstadoPanel
@@ -407,7 +415,7 @@ export default function AlquileresVer({
                                             <th className="px-4 py-2 text-left font-medium">Notas</th>
                                             <th className="px-4 py-2 text-left font-medium">Registrado por</th>
                                             <th className="px-4 py-2 text-left font-medium">Fecha</th>
-                                            {puedeCobrar && <th className="px-4 py-2" />}
+                                            <th className="px-4 py-2" />
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -419,19 +427,31 @@ export default function AlquileresVer({
                                                 <td className="px-4 py-2 text-muted-foreground">{p.notas ?? '—'}</td>
                                                 <td className="px-4 py-2 text-muted-foreground">{p.registrado_por?.name ?? '—'}</td>
                                                 <td className="px-4 py-2 text-muted-foreground">{fmtFechaHora(p.created_at)}</td>
-                                                {puedeCobrar && (
-                                                    <td className="px-4 py-2">
-                                                        <Button
-                                                            type="button"
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            onClick={() => eliminarPago(p.id)}
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                            Eliminar
+                                                <td className="px-4 py-2">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button type="button" variant="outline" size="sm" asChild>
+                                                            <a
+                                                                href={pagosRoutes.print.url({ alquiler: alquiler.id, pago: p.id })}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                            >
+                                                                <Printer className="size-4" />
+                                                                Imprimir
+                                                            </a>
                                                         </Button>
-                                                    </td>
-                                                )}
+                                                        {puedeCobrar && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                onClick={() => eliminarPago(p.id)}
+                                                            >
+                                                                <Trash2 className="size-4" />
+                                                                Eliminar
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

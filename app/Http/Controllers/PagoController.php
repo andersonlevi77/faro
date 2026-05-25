@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MetodoPago;
+use App\Enums\TipoPago;
 use App\Http\Requests\StorePagoRequest;
 use App\Models\Alquiler;
 use App\Models\Pago;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class PagoController extends Controller
 {
@@ -32,5 +35,35 @@ class PagoController extends Controller
         $pago->delete();
 
         return back()->with('success', 'Pago eliminado.');
+    }
+
+    public function print(Alquiler $alquiler, Pago $pago): View
+    {
+        $this->authorize('view', $alquiler);
+
+        if ($pago->alquiler_id !== $alquiler->id) {
+            abort(403);
+        }
+
+        $alquiler->load([
+            'cliente',
+            'lineas.producto',
+            'lineas.paquete',
+            'pagos.registradoPor',
+        ]);
+        $pago->load('registradoPor');
+
+        return view('print.pago', [
+            'alquiler' => $alquiler,
+            'pago' => $pago,
+            'tipoLabel' => ($pago->tipo instanceof TipoPago ? $pago->tipo : TipoPago::from((string) $pago->tipo))->etiqueta(),
+            'metodoLabel' => ($pago->metodo_pago instanceof MetodoPago ? $pago->metodo_pago : MetodoPago::from((string) $pago->metodo_pago))->etiqueta(),
+            'resumen' => [
+                'total_alquiler' => $alquiler->total,
+                'deposito' => $alquiler->deposito_monto,
+                'total_cobrado' => $alquiler->totalCobrado(),
+                'saldo_pendiente' => $alquiler->saldoPendiente(),
+            ],
+        ]);
     }
 }

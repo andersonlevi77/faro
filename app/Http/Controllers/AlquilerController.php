@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -179,6 +180,8 @@ class AlquilerController extends Controller
             ->values()
             ->all();
 
+        $resumen = $this->resumenFinanciero($alquiler);
+
         return Inertia::render('alquileres/alquileres/ver', [
             'alquiler' => $alquiler,
             'estadoActual' => [
@@ -193,15 +196,28 @@ class AlquilerController extends Controller
                 && ($user?->can('update', $alquiler) ?? false),
             'puedeCambiarEstado' => $user?->can('cambiarEstado', $alquiler) ?? false,
             'puedeCobrar' => $user?->can('create', Pago::class) ?? false,
-            'resumen' => [
-                'total_alquiler' => $alquiler->total,
-                'deposito' => $alquiler->deposito_monto,
-                'total_cobrado' => $alquiler->totalCobrado(),
-                'total_devuelto' => $alquiler->totalDevuelto(),
-                'saldo_pendiente' => $alquiler->saldoPendiente(),
-            ],
+            'resumen' => $resumen,
             'tiposPago' => collect(TipoPago::cases())->map(fn ($e) => ['value' => $e->value, 'label' => $e->etiqueta()]),
             'metodosPago' => collect(MetodoPago::cases())->map(fn ($e) => ['value' => $e->value, 'label' => $e->etiqueta()]),
+        ]);
+    }
+
+    public function print(Alquiler $alquiler): View
+    {
+        $this->authorize('view', $alquiler);
+
+        $alquiler->load([
+            'cliente',
+            'usuario',
+            'lineas.producto',
+            'lineas.paquete',
+            'pagos.registradoPor',
+        ]);
+
+        return view('print.alquiler', [
+            'alquiler' => $alquiler,
+            'estadoLabel' => $alquiler->estadoEnum()->etiqueta(),
+            'resumen' => $this->resumenFinanciero($alquiler),
         ]);
     }
 
@@ -389,6 +405,26 @@ class AlquilerController extends Controller
                     ])->values(),
                 ])
                 ->values(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     total_alquiler: string,
+     *     deposito: string,
+     *     total_cobrado: string,
+     *     total_devuelto: string,
+     *     saldo_pendiente: string
+     * }
+     */
+    private function resumenFinanciero(Alquiler $alquiler): array
+    {
+        return [
+            'total_alquiler' => $alquiler->total,
+            'deposito' => $alquiler->deposito_monto,
+            'total_cobrado' => $alquiler->totalCobrado(),
+            'total_devuelto' => $alquiler->totalDevuelto(),
+            'saldo_pendiente' => $alquiler->saldoPendiente(),
         ];
     }
 }

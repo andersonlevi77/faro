@@ -30,12 +30,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('clientes', ClienteController::class);
     Route::resource('alquileres', AlquilerController::class)
         ->parameters(['alquileres' => 'alquiler']);
+    Route::get('alquileres/{alquiler}/imprimir', [AlquilerController::class, 'print'])
+        ->name('alquileres.print');
     Route::post('alquileres/{alquiler}/estado', [AlquilerEstadoController::class, 'update'])
         ->name('alquileres.estado.update');
     Route::post('alquileres/{alquiler}/pagos', [PagoController::class, 'store'])
         ->name('alquileres.pagos.store');
     Route::delete('alquileres/{alquiler}/pagos/{pago}', [PagoController::class, 'destroy'])
         ->name('alquileres.pagos.destroy');
+    Route::get('alquileres/{alquiler}/pagos/{pago}/imprimir', [PagoController::class, 'print'])
+        ->name('alquileres.pagos.print');
 
     Route::resource('mantenimientos', MantenimientoController::class)
         ->only(['index', 'create', 'store', 'show', 'update'])
